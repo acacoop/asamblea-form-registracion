@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Votación</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Votación</h1>
+
+        <!-- Sección de Selección de Cooperativa -->
+        <section id="cooperativa-section">
+            <h2>Información de la Cooperativa</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cooperative">Seleccione Cooperativa:</label>
+                    <select id="cooperative" name="cooperative" required>
+                        <option value="">Seleccione una cooperativa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="code">Código:</label>
+                    <input type="text" id="code" name="code" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="cuit">CUIT:</label>
+                    <input type="text" id="cuit" name="cuit" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="votes">Cantidad de votos:</label>
+                    <input type="number" id="votes" name="votes" readonly>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Titulares -->
+        <section id="titulares-section">
+            <h2>Titulares</h2>
+            <div id="titulares-container">
+                <!-- Los titulares se agregarán dinámicamente -->
+            </div>
+            <button type="button" id="agregar-titular" class="btn-add">Agregar Titular</button>
+        </section>
+
+        <!-- Sección de Suplentes -->
+        <section id="suplentes-section">
+            <h2>Suplentes (0-6)</h2>
+            <div id="suplentes-container">
+                <!-- Los suplentes se agregarán dinámicamente -->
+            </div>
+            <button type="button" id="agregar-suplente" class="btn-add">Agregar Suplente</button>
+        </section>
+
+        <!-- Sección de Cartas Poder -->
+        <section id="cartas-poder-section">
+            <h2>Cartas Poder</h2>
+            <div id="cartas-poder-container">
+                <!-- Las cartas poder se agregarán dinámicamente -->
+            </div>
+            <button type="button" id="agregar-carta-poder" class="btn-add">Agregar Carta Poder</button>
+        </section>
+
+        <!-- Sección de Resumen -->
+        <section id="resumen-section">
+            <h2>Resumen de Votación</h2>
+            <div id="resumen-container">
+                <!-- El resumen se generará dinámicamente -->
+            </div>
+        </section>
+
+        <div class="button-container">
+            <button type="button" id="validar" class="btn-primary">Validar</button>
+            <button type="button" id="guardar" class="btn-primary">Guardar</button>
+        </div>
+
+        <!-- Modal para errores -->
+        <div id="error-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Errores de Validación</h2>
+                <div id="error-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
