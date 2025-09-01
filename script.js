@@ -1263,10 +1263,8 @@ function handleCooperativeChange() {
             state.maxSuplentes = parseInt(selectedCoop.substitutes || selectedCoop.votes);
             
             // Actualizar textos informativos
-            document.querySelector('#titulares-section h2').textContent = 
-                `Titulares (0-${state.maxTitulares}) - Máximo según votos de la cooperativa`;
-            document.querySelector('#suplentes-section h2').textContent = 
-                `Suplentes (0-${state.maxSuplentes}) - Máximo según configuración de la cooperativa`;
+            document.querySelector('#titulares-section h2').textContent = 'Titulares';
+            document.querySelector('#suplentes-section h2').textContent = 'Suplentes';
             
             // Actualizar estado de botones
             updateButtonStates();
