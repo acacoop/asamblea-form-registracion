@@ -1,0 +1,99 @@
+{
+    "timestamp": "2025-09-01T15:30:45.123Z",
+    "cooperativa": {
+        "codigo": "2",
+        "nombre": "COOP. AGRIC. GANAD. LTDA. DE ACEVEDO",
+        "votos": 5,
+        "suplentes": 5,
+        "car": 4,
+        "carNombre": "Norte de Buenos Aires"
+    },
+    "titulares": [
+        {
+            "id": "1725206445123_abc123",
+            "nombre": "Juan Carlos Pérez",
+            "documento": "12345678",
+            "orden": 1
+        },
+        {
+            "id": "1725206445124_def456",
+            "nombre": "María Elena García",
+            "documento": "23456789",
+            "orden": 2
+        },
+        {
+            "id": "1725206445125_ghi789",
+            "nombre": "Roberto Luis Martínez",
+            "documento": "34567890",
+            "orden": 3
+        },
+        {
+            "id": "1725206445126_jkl012",
+            "nombre": "Ana Sofía López",
+            "documento": "45678901",
+            "orden": 4
+        },
+        {
+            "id": "1725206445127_mno345",
+            "nombre": "Carlos Eduardo Fernández",
+            "documento": "56789012",
+            "orden": 5
+        }
+    ],
+    "suplentes": [
+        {
+            "id": "1725206445128_pqr678",
+            "nombre": "Lucía Beatriz González",
+            "documento": "67890123",
+            "orden": 1
+        },
+        {
+            "id": "1725206445129_stu901",
+            "nombre": "Miguel Ángel Rodríguez",
+            "documento": "78901234",
+            "orden": 2
+        },
+        {
+            "id": "1725206445130_vwx234",
+            "nombre": "Patricia Isabel Morales",
+            "documento": "89012345",
+            "orden": 3
+        }
+    ],
+    "cartasPoder": [
+        {
+            "id": "1725206445131_yz567",
+            "poderdante": {
+                "id": "1725206445123_abc123",
+                "nombre": "Juan Carlos Pérez",
+                "documento": "12345678"
+            },
+            "apoderado": {
+                "id": "1725206445124_def456",
+                "nombre": "María Elena García",
+                "documento": "23456789"
+            },
+            "orden": 1
+        },
+        {
+            "id": "1725206445132_abc890",
+            "poderdante": {
+                "id": "1725206445125_ghi789",
+                "nombre": "Roberto Luis Martínez",
+                "documento": "34567890"
+            },
+            "apoderado": {
+                "id": "1725206445126_jkl012",
+                "nombre": "Ana Sofía López",
+                "documento": "45678901"
+            },
+            "orden": 2
+        }
+    ],
+    "resumen": {
+        "totalTitulares": 5,
+        "totalSuplentes": 3,
+        "totalCartasPoder": 2,
+        "votosEfectivos": 4
+    }
+}

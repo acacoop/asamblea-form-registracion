@@ -10,6 +10,13 @@ const state = {
     maxCartasPoder: 2
 };
 
+// Configuración del endpoint
+const config = {
+    // Cambia esta URL por tu endpoint real
+    apiEndpoint: 'https://tu-endpoint-aqui.com/api/registro-asamblea',
+    timeout: 30000 // 30 segundos
+};
+
 // Funciones de navegación entre pantallas
 function mostrarRegistro() {
     document.getElementById('credenciales-screen').style.display = 'none';
@@ -24,10 +31,10 @@ function volverCredenciales() {
 // Cargar los datos de las cooperativas desde el CSV
 async function loadCooperatives() {
     try {
-        const response = await fetch('data/cooperatives.csv');
+        const response = await fetch('data/cooperatives_con_car.csv');
         const csvText = await response.text();
         state.cooperativas = parseCSV(csvText);
-        populateCooperativeSelect(state.cooperativas);
+        populateCarSelect(state.cooperativas);
     } catch (error) {
         showError('Error al cargar las cooperativas: ' + error.message);
     }
@@ -64,14 +71,40 @@ function parseCSV(csv) {
                 cooperative[header] = values[index] || '';
             });
             
-            // Convertir votes a número
+            // Convertir votes y substitutes a números
             cooperative.votes = parseInt(cooperative.votes) || 0;
+            cooperative.substitutes = parseInt(cooperative.substitutes) || 0;
+            cooperative.CAR = parseInt(cooperative.CAR) || 0;
             
             return cooperative;
         });
 }
 
-// Poblar el select con las cooperativas
+// Poblar el select con los CARs
+function populateCarSelect(cooperativas) {
+    const select = document.getElementById('car-select');
+    select.innerHTML = '<option value="">Seleccione un CAR</option>';
+    
+    // Obtener CARs únicos
+    const cars = new Map();
+    cooperativas.forEach(coop => {
+        if (coop.CAR && coop['CAR Nombre']) {
+            cars.set(coop.CAR, coop['CAR Nombre']);
+        }
+    });
+    
+    // Ordenar CARs por número
+    const sortedCars = Array.from(cars.entries()).sort((a, b) => a[0] - b[0]);
+    
+    sortedCars.forEach(([carNumber, carName]) => {
+        const option = document.createElement('option');
+        option.value = carNumber;
+        option.textContent = `CAR ${carNumber} - ${carName}`;
+        select.appendChild(option);
+    });
+}
+
+// Poblar el select con las cooperativas filtradas por CAR
 function populateCooperativeSelect(cooperativas) {
     const select = document.getElementById('cooperative');
     select.innerHTML = '<option value="">Seleccione una cooperativa</option>';
@@ -83,10 +116,70 @@ function populateCooperativeSelect(cooperativas) {
         const option = document.createElement('option');
         option.value = coop.code;
         option.textContent = coop.name;
-        option.dataset.cuit = coop.cuit;
         option.dataset.votes = coop.votes;
+        option.dataset.substitutes = coop.substitutes;
+        option.dataset.car = coop.CAR;
+        option.dataset.carName = coop['CAR Nombre'];
         select.appendChild(option);
     });
+}
+
+// Filtrar cooperativas por CAR seleccionado
+function filterCooperativesByCAR() {
+    const carSelect = document.getElementById('car-select');
+    const selectedCAR = carSelect.value;
+    
+    if (!selectedCAR) {
+        // Si no hay CAR seleccionado, limpiar el select de cooperativas
+        const cooperativeSelect = document.getElementById('cooperative');
+        cooperativeSelect.innerHTML = '<option value="">Primero seleccione un CAR</option>';
+        
+        // Limpiar datos de cooperativa seleccionada
+        clearCooperativeData();
+        return;
+    }
+    
+    // Filtrar cooperativas por CAR
+    const filteredCooperativas = state.cooperativas.filter(coop => 
+        parseInt(coop.CAR) === parseInt(selectedCAR)
+    );
+    
+    // Poblar el select con las cooperativas filtradas
+    populateCooperativeSelect(filteredCooperativas);
+    
+    // Limpiar datos de cooperativa anteriormente seleccionada
+    clearCooperativeData();
+}
+
+// Limpiar datos de cooperativa y formulario
+function clearCooperativeData() {
+    state.cooperativaSeleccionada = null;
+    state.titulares = [];
+    state.suplentes = [];
+    state.cartasPoder = [];
+    
+    // Limpiar campos de información de cooperativa
+    document.getElementById('code').value = '';
+    document.getElementById('votes').value = '';
+    
+    // Limpiar contenedores
+    document.getElementById('titulares-container').innerHTML = '';
+    document.getElementById('suplentes-container').innerHTML = '';
+    document.getElementById('cartas-poder-container').innerHTML = '';
+    
+    // Restaurar textos por defecto
+    document.querySelector('#titulares-section h2').textContent = 'Titulares';
+    document.querySelector('#suplentes-section h2').textContent = 'Suplentes';
+    
+    // Resetear límites
+    state.maxTitulares = 6;
+    state.maxSuplentes = 6;
+    
+    // Actualizar botones
+    updateButtonStates();
+    
+    // Limpiar resumen
+    updateResumen();
 }
 
 // Funciones de utilidad
@@ -167,7 +260,7 @@ function createCartaPoderCard(id) {
     card.innerHTML = `
         <div class="form-row">
             <div class="form-group">
-                <label for="desde-${id}">Poderante (quien delega):</label>
+                <label for="desde-${id}">Poderdante (quien delega):</label>
                 <select id="desde-${id}" required onchange="validateCartaPoder('${id}')">
                     <option value="">Seleccione un titular</option>
                 </select>
@@ -268,14 +361,14 @@ function updateCartaPoderSelects() {
             nombre: card.querySelector('input[id^="nombre-"]').value
         }));
 
-    // Obtener lista de poderantes (quienes ya delegaron su voto)
-    const poderantes = new Set();
+    // Obtener lista de poderdantes (quienes ya delegaron su voto)
+    const poderdantes = new Set();
     state.cartasPoder.forEach(cpOther => {
         const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
         if (otherCard) {
             const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
             if (desde) {
-                poderantes.add(desde);
+                poderdantes.add(desde);
             }
         }
     });
@@ -290,15 +383,15 @@ function updateCartaPoderSelects() {
         const currentDesde = desdeSelect.value;
         const currentHacia = haciaSelect.value;
 
-        // Obtener poderantes excluyendo el actual
-        const otrosPoderantes = new Set();
+        // Obtener poderdantes excluyendo el actual
+        const otrosPoderdantes = new Set();
         state.cartasPoder.forEach(cpOther => {
             if (cpOther.id !== cp.id) { // Excluir la carta actual
                 const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
                 if (otherCard) {
                     const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
                     if (desde) {
-                        otrosPoderantes.add(desde);
+                        otrosPoderdantes.add(desde);
                     }
                 }
             }
@@ -308,30 +401,30 @@ function updateCartaPoderSelects() {
         haciaSelect.innerHTML = '<option value="">Seleccione un titular</option>';
 
         titulares.forEach(t => {
-            // Solo los titulares que NO son poderantes en OTRAS cartas pueden ser poderantes
-            if (!otrosPoderantes.has(t.id)) {
+            // Solo los titulares que NO son poderdantes en OTRAS cartas pueden ser poderdantes
+            if (!otrosPoderdantes.has(t.id)) {
                 desdeSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
             }
             
-            // Solo los titulares que NO son poderantes en NINGUNA carta pueden ser apoderados
-            if (!poderantes.has(t.id)) {
+            // Solo los titulares que NO son poderdantes en NINGUNA carta pueden ser apoderados
+            if (!poderdantes.has(t.id)) {
                 haciaSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
             }
         });
 
         // Restaurar valores solo si siguen siendo válidos
-        if (currentDesde && !otrosPoderantes.has(currentDesde)) {
+        if (currentDesde && !otrosPoderdantes.has(currentDesde)) {
             desdeSelect.value = currentDesde;
-        } else if (currentDesde && otrosPoderantes.has(currentDesde)) {
-            // Si el poderante seleccionado ya es poderante en otra carta, limpiar la selección
+        } else if (currentDesde && otrosPoderdantes.has(currentDesde)) {
+            // Si el poderdante seleccionado ya es poderdante en otra carta, limpiar la selección
             desdeSelect.value = '';
         }
         
-        // Solo restaurar el valor de apoderado si no es un poderante
-        if (currentHacia && !poderantes.has(currentHacia)) {
+        // Solo restaurar el valor de apoderado si no es un poderdante
+        if (currentHacia && !poderdantes.has(currentHacia)) {
             haciaSelect.value = currentHacia;
-        } else if (currentHacia && poderantes.has(currentHacia)) {
-            // Si el apoderado seleccionado ahora es poderante, limpiar la selección
+        } else if (currentHacia && poderdantes.has(currentHacia)) {
+            // Si el apoderado seleccionado ahora es poderdante, limpiar la selección
             haciaSelect.value = '';
         }
     });
@@ -380,7 +473,7 @@ function validateCartaPoder(id) {
     const hacia = card.querySelector(`select[id^="hacia-"]`).value;
 
     if (desde && hacia && desde === hacia) {
-        showError('❌ Error: Un titular no puede ser poderante y apoderado de sí mismo');
+        showError('❌ Error: Un titular no puede ser poderdante y apoderado de sí mismo');
         card.querySelector(`select[id^="hacia-"]`).value = '';
         return false;
     }
@@ -397,32 +490,32 @@ function validateCartaPoder(id) {
         return false;
     }
 
-    // Verificar que el poderante no haya delegado ya
+    // Verificar que el poderdante no haya delegado ya
     const yaDelego = state.cartasPoder.some(cp => {
         const otherCard = document.querySelector(`[data-id="${cp.id}"]`);
         return otherCard && otherCard !== card && otherCard.querySelector(`select[id^="desde-"]`).value === desde;
     });
 
     if (yaDelego) {
-        showError('❌ Error: Este poderante ya delegó su voto a otro titular');
+        showError('❌ Error: Este poderdante ya delegó su voto a otro titular');
         card.querySelector(`select[id^="desde-"]`).value = '';
         return false;
     }
 
-    // Verificar que el apoderado no sea ya un poderante
-    const apoderadoEsPoderante = state.cartasPoder.some(cp => {
+    // Verificar que el apoderado no sea ya un poderdante
+    const apoderadoEsPoderdante = state.cartasPoder.some(cp => {
         const otherCard = document.querySelector(`[data-id="${cp.id}"]`);
         return otherCard && otherCard !== card && otherCard.querySelector(`select[id^="desde-"]`).value === hacia;
     });
 
-    if (apoderadoEsPoderante) {
+    if (apoderadoEsPoderdante) {
         showError('❌ Error: Un titular que ya delegó su voto no puede ser apoderado');
         card.querySelector(`select[id^="hacia-"]`).value = '';
         updateCartaPoderSelects();
         return false;
     }
 
-    // Actualizar los selects para reflejar los cambios cuando se selecciona un nuevo poderante
+    // Actualizar los selects para reflejar los cambios cuando se selecciona un nuevo poderdante
     if (desde) {
         updateCartaPoderSelects();
     }
@@ -510,12 +603,12 @@ function validateAndSave() {
         }
 
         if (desde === hacia) {
-            errors.push(`Error en carta poder ${index + 1}: un titular no puede ser poderante y apoderado de sí mismo`);
+            errors.push(`Error en carta poder ${index + 1}: un titular no puede ser poderdante y apoderado de sí mismo`);
             return;
         }
 
         if (titularesConVotoDelegado.has(desde)) {
-            errors.push(`Error en carta poder ${index + 1}: cada poderante solo puede delegar su voto una vez`);
+            errors.push(`Error en carta poder ${index + 1}: cada poderdante solo puede delegar su voto una vez`);
         }
         titularesConVotoDelegado.add(desde);
 
@@ -531,9 +624,31 @@ function validateAndSave() {
         return false;
     }
 
-    console.log('Validación exitosa, mostrando resumen...');
-    // Si la validación es exitosa, mostrar resumen y guardar
-    showSaveSuccessWithResumen();
+    console.log('Validación exitosa, generando JSON y enviando datos...');
+    
+    // Generar JSON con los datos
+    const formData = generateFormDataJSON();
+    
+    // Mostrar JSON en consola para debug
+    console.log('JSON generado:', formData);
+    
+    // Opción para descargar JSON como backup (opcional)
+    downloadJSONBackup(formData);
+    
+    // Mostrar loading mientras se envían los datos
+    showLoadingModal();
+    
+    // Enviar datos al endpoint
+    sendDataToEndpoint(formData).then(result => {
+        if (result.success) {
+            console.log('Datos enviados exitosamente');
+            showSaveSuccessWithResumen();
+        } else {
+            console.error('Error al enviar datos:', result.error);
+            showSendError(result.error);
+        }
+    });
+    
     return true;
 }
 
@@ -616,12 +731,12 @@ function validate() {
         }
 
         if (desde === hacia) {
-            errors.push(`Error en carta poder ${index + 1}: un titular no puede ser poderante y apoderado de sí mismo`);
+            errors.push(`Error en carta poder ${index + 1}: un titular no puede ser poderdante y apoderado de sí mismo`);
             return;
         }
 
         if (titularesConVotoDelegado.has(desde)) {
-            errors.push(`Error en carta poder ${index + 1}: cada poderante solo puede delegar su voto una vez`);
+            errors.push(`Error en carta poder ${index + 1}: cada poderdante solo puede delegar su voto una vez`);
         }
         titularesConVotoDelegado.add(desde);
 
@@ -708,6 +823,153 @@ function showSaveSuccessWithResumen() {
     errorModal.style.display = 'block';
 }
 
+// Función para generar el JSON con los datos del formulario
+function generateFormDataJSON() {
+    const formData = {
+        timestamp: new Date().toISOString(),
+        cooperativa: {
+            codigo: state.cooperativaSeleccionada?.code || '',
+            nombre: state.cooperativaSeleccionada?.name || '',
+            votos: state.cooperativaSeleccionada?.votes || 0,
+            suplentes: state.cooperativaSeleccionada?.substitutes || 0,
+            car: state.cooperativaSeleccionada?.CAR || 0,
+            carNombre: state.cooperativaSeleccionada?.['CAR Nombre'] || ''
+        },
+        titulares: [],
+        suplentes: [],
+        cartasPoder: [],
+        resumen: {
+            totalTitulares: state.titulares.length,
+            totalSuplentes: state.suplentes.length,
+            totalCartasPoder: state.cartasPoder.length,
+            votosEfectivos: 0
+        }
+    };
+
+    // Recopilar datos de titulares
+    state.titulares.forEach((titular, index) => {
+        const card = document.querySelector(`[data-id="${titular.id}"]`);
+        const nombre = card.querySelector(`input[id^="nombre-"]`).value.trim();
+        const documento = card.querySelector(`input[id^="documento-"]`).value.trim();
+        
+        formData.titulares.push({
+            id: titular.id,
+            nombre: nombre,
+            documento: documento,
+            orden: index + 1
+        });
+    });
+
+    // Recopilar datos de suplentes
+    state.suplentes.forEach((suplente, index) => {
+        const card = document.querySelector(`[data-id="${suplente.id}"]`);
+        const nombre = card.querySelector(`input[id^="nombre-sup-"]`).value.trim();
+        const documento = card.querySelector(`input[id^="documento-sup-"]`).value.trim();
+        
+        formData.suplentes.push({
+            id: suplente.id,
+            nombre: nombre,
+            documento: documento,
+            orden: index + 1
+        });
+    });
+
+    // Recopilar datos de cartas poder
+    state.cartasPoder.forEach((cp, index) => {
+        const card = document.querySelector(`[data-id="${cp.id}"]`);
+        const desde = card.querySelector(`select[id^="desde-"]`).value;
+        const hacia = card.querySelector(`select[id^="hacia-"]`).value;
+        
+        // Buscar nombres de los titulares
+        const poderdante = formData.titulares.find(t => t.id === desde);
+        const apoderado = formData.titulares.find(t => t.id === hacia);
+        
+        formData.cartasPoder.push({
+            id: cp.id,
+            poderdante: {
+                id: desde,
+                nombre: poderdante?.nombre || '',
+                documento: poderdante?.documento || ''
+            },
+            apoderado: {
+                id: hacia,
+                nombre: apoderado?.nombre || '',
+                documento: apoderado?.documento || ''
+            },
+            orden: index + 1
+        });
+    });
+
+    // Calcular votos efectivos
+    const titularesQueVotan = state.titulares.filter(titular => {
+        return !state.cartasPoder.some(cp => {
+            const card = document.querySelector(`[data-id="${cp.id}"]`);
+            const desde = card.querySelector(`select[id^="desde-"]`).value;
+            return desde === titular.id;
+        });
+    });
+
+    const apoderados = new Set();
+    state.cartasPoder.forEach(cp => {
+        const card = document.querySelector(`[data-id="${cp.id}"]`);
+        const hacia = card.querySelector(`select[id^="hacia-"]`).value;
+        apoderados.add(hacia);
+    });
+
+    formData.resumen.votosEfectivos = titularesQueVotan.length + apoderados.size;
+
+    return formData;
+}
+
+// Función para enviar los datos al endpoint
+async function sendDataToEndpoint(data) {
+    try {
+        console.log('Enviando datos al endpoint:', config.apiEndpoint);
+        console.log('Datos a enviar:', JSON.stringify(data, null, 2));
+        
+        // Crear un AbortController para manejar timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), config.timeout);
+        
+        const response = await fetch(config.apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('Respuesta del servidor:', result);
+        
+        return {
+            success: true,
+            data: result
+        };
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.error('Timeout: La solicitud tardó demasiado tiempo');
+            return {
+                success: false,
+                error: 'La solicitud tardó demasiado tiempo. Verifique su conexión e intente nuevamente.'
+            };
+        }
+        console.error('Error al enviar datos:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 function showValidationSuccessWithResumen() {
     console.log('Ejecutando showValidationSuccessWithResumen...');
     const errorModal = document.getElementById('error-modal');
@@ -736,6 +998,83 @@ function showValidationSuccessWithResumen() {
     modalAccept.textContent = 'Confirmar y Habilitar Guardar';
     errorModal.style.display = 'block';
     console.log('Modal mostrado');
+}
+
+// Función para mostrar modal de loading
+function showLoadingModal() {
+    const errorModal = document.getElementById('error-modal');
+    const errorList = document.getElementById('error-list');
+    const modalTitle = document.getElementById('modal-title');
+    const modalAccept = document.getElementById('modal-accept');
+    
+    modalTitle.textContent = 'Enviando Datos...';
+    errorList.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <div style="color: var(--aca-blue); font-weight: bold; margin-bottom: 15px;">
+                📤 Enviando registro al servidor...
+            </div>
+            <div style="margin: 15px 0;">
+                <div style="border: 3px solid #f3f3f3; border-top: 3px solid var(--aca-blue); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+            </div>
+            <div style="color: var(--text-gray); font-size: 0.9em;">
+                Por favor, espere mientras se procesa la información...
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    modalAccept.style.display = 'none';
+    errorModal.style.display = 'block';
+}
+
+// Función para mostrar error de envío
+function showSendError(errorMessage) {
+    const errorModal = document.getElementById('error-modal');
+    const errorList = document.getElementById('error-list');
+    const modalTitle = document.getElementById('modal-title');
+    const modalAccept = document.getElementById('modal-accept');
+    
+    modalTitle.textContent = 'Error al Enviar Datos';
+    errorList.innerHTML = `
+        <div style="color: var(--error-red); font-weight: bold; margin-bottom: 15px;">
+            ❌ Error al enviar los datos al servidor
+        </div>
+        <div style="background-color: #fff5f5; border: 1px solid #fed7d7; border-radius: 6px; padding: 15px; margin: 15px 0;">
+            <strong>Detalles del error:</strong><br>
+            ${errorMessage}
+        </div>
+        <div style="color: var(--text-gray); font-size: 0.9em; margin-top: 15px;">
+            Por favor, verifique su conexión a internet e intente nuevamente. Si el problema persiste, contacte al administrador del sistema.
+        </div>
+    `;
+    modalAccept.style.display = 'inline-block';
+    modalAccept.textContent = 'Cerrar';
+    errorModal.style.display = 'block';
+}
+
+// Función para descargar JSON como backup
+function downloadJSONBackup(data) {
+    try {
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `registro-asamblea-${data.cooperativa.codigo}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log('Backup JSON descargado exitosamente');
+    } catch (error) {
+        console.warn('No se pudo descargar el backup JSON:', error);
+    }
 }
 
 function generateResumen() {
@@ -812,15 +1151,15 @@ function updateResumen() {
                 ${delegoSuVoto ? (() => {
                     const delegacion = resumen.delegaciones.find(d => d.desde === t.id);
                     const apoderado = resumen.titulares.find(titular => titular.id === delegacion.hacia);
-                    return `<p style="color: #ff9800;"><strong>Estado:</strong> Poderante - Delegó voto a ${apoderado.nombre}</p>`;
+                    return `<p style="color: #ff9800;"><strong>Estado:</strong> Poderdante - Delegó voto a ${apoderado.nombre}</p>`;
                 })() :
                     `<p><strong>Votos a ejercer:</strong> ${votosTotal} ${votosTotal === 1 ? '(voto propio)' : `(propio + ${votosExtra} delegados)`}</p>`
                 }
                 ${tieneDelegaciones && !delegoSuVoto ? (() => {
-                    const poderantes = resumen.delegaciones
+                    const poderdantes = resumen.delegaciones
                         .filter(d => d.hacia === t.id)
                         .map(d => resumen.titulares.find(titular => titular.id === d.desde).nombre);
-                    return `<p style="color: #4caf50;"><strong>Estado:</strong> Apoderado - Recibe delegaciones de: ${poderantes.join(', ')}</p>`;
+                    return `<p style="color: #4caf50;"><strong>Estado:</strong> Apoderado - Recibe delegaciones de: ${poderdantes.join(', ')}</p>`;
                 })() : 
                     ''
                 }
@@ -843,12 +1182,12 @@ function updateResumen() {
     if (resumen.delegaciones.length > 0) {
         html += '<h3>Cartas Poder Registradas:</h3>';
         resumen.delegaciones.forEach((d, index) => {
-            const titularPoderante = resumen.titulares.find(t => t.id === d.desde);
+            const titularPoderdante = resumen.titulares.find(t => t.id === d.desde);
             const titularApoderado = resumen.titulares.find(t => t.id === d.hacia);
             html += `
                 <div class="card">
                     <p><strong>Carta Poder ${index + 1}:</strong></p>
-                    <p><strong>Poderante:</strong> ${titularPoderante?.nombre || 'Titular no encontrado'} (delega su voto)</p>
+                    <p><strong>Poderdante:</strong> ${titularPoderdante?.nombre || 'Titular no encontrado'} (delega su voto)</p>
                     <p><strong>Apoderado:</strong> ${titularApoderado?.nombre || 'Titular no encontrado'} (recibe el voto)</p>
                 </div>
             `;
@@ -886,7 +1225,6 @@ function handleCooperativeChange() {
         if (selectedCoop) {
             state.cooperativaSeleccionada = selectedCoop;
             document.getElementById('code').value = selectedCoop.code;
-            document.getElementById('cuit').value = selectedCoop.cuit;
             document.getElementById('votes').value = selectedCoop.votes;
             
             // Limpiar titulares y suplentes existentes
@@ -899,49 +1237,30 @@ function handleCooperativeChange() {
             document.getElementById('cartas-poder-container').innerHTML = '';
             document.getElementById('resumen-container').innerHTML = '';
             
-            // Actualizar límites según los votos de la cooperativa (máximo 6 titulares)
+            // Actualizar límites según los votos de la cooperativa
             state.maxTitulares = Math.min(parseInt(selectedCoop.votes), 6);
-            state.maxSuplentes = parseInt(selectedCoop.votes);
+            state.maxSuplentes = parseInt(selectedCoop.substitutes || selectedCoop.votes);
             
             // Actualizar textos informativos
             document.querySelector('#titulares-section h2').textContent = 
                 `Titulares (0-${state.maxTitulares}) - Máximo según votos de la cooperativa`;
+            document.querySelector('#suplentes-section h2').textContent = 
+                `Suplentes (0-${state.maxSuplentes}) - Máximo según configuración de la cooperativa`;
             
             // Actualizar estado de botones
             updateButtonStates();
             
-            showConfirmation(`Cooperativa seleccionada: ${selectedCoop.name}. 
-            
-Puede agregar hasta ${selectedCoop.votes} titulares y ${selectedCoop.votes} suplentes.
+            showConfirmation(`Cooperativa seleccionada: ${selectedCoop.name}
+CAR ${selectedCoop.CAR} - ${selectedCoop['CAR Nombre']}
+
+Puede agregar hasta ${selectedCoop.votes} titulares y ${selectedCoop.substitutes || selectedCoop.votes} suplentes.
 
 Reglas de cartas poder:
-• Cada poderante puede delegar su voto UNA vez
+• Cada poderdante puede delegar su voto UNA vez
 • Cada apoderado puede recibir hasta 2 cartas poder`);
         }
     } else {
-        // Limpiar selección
-        state.cooperativaSeleccionada = null;
-        document.getElementById('code').value = '';
-        document.getElementById('cuit').value = '';
-        document.getElementById('votes').value = '';
-        
-        // Limpiar todo
-        state.titulares = [];
-        state.suplentes = [];
-        state.cartasPoder = [];
-        
-        document.getElementById('titulares-container').innerHTML = '';
-        document.getElementById('suplentes-container').innerHTML = '';
-        document.getElementById('cartas-poder-container').innerHTML = '';
-        document.getElementById('resumen-container').innerHTML = '';
-        
-        // Restaurar textos por defecto
-        document.querySelector('#titulares-section h2').textContent = 'Titulares';
-        
-        // Resetear límites
-        state.maxTitulares = 6;
-        state.maxSuplentes = 6;
-        updateButtonStates();
+        clearCooperativeData();
     }
 }
 
@@ -959,6 +1278,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('agregar-carta-poder').addEventListener('click', addCartaPoder);
     // El botón guardar ahora usa onclick en el HTML
 
+    // Evento de cambio de CAR
+    document.getElementById('car-select').addEventListener('change', filterCooperativesByCAR);
+    
     // Evento de cambio de cooperativa
     document.getElementById('cooperative').addEventListener('change', handleCooperativeChange);
 

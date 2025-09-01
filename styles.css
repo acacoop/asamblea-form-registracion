@@ -1,3 +1,40 @@
+/* Importación de Basier Circle (si tienes los archivos de fuente) */
+@font-face {
+  font-family: 'Basier Circle';
+  src: url('fonts/BasierCircle-Regular.woff2') format('woff2'),
+       url('fonts/BasierCircle-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Basier Circle';
+  src: url('fonts/BasierCircle-Medium.woff2') format('woff2'),
+       url('fonts/BasierCircle-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Basier Circle';
+  src: url('fonts/BasierCircle-SemiBold.woff2') format('woff2'),
+       url('fonts/BasierCircle-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Basier Circle';
+  src: url('fonts/BasierCircle-Bold.woff2') format('woff2'),
+       url('fonts/BasierCircle-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Variables CSS - Colores ACA */
 :root {
   --aca-blue: #282d87;
@@ -24,7 +61,7 @@
 }
 
 body {
-  font-family: "Basier Circle", "Neue Haas Grotesk Pro", "Heebo", "Arial",
+  font-family: "Basier Circle", "Inter", "Nunito Sans", "Neue Haas Grotesk Pro", "Heebo", "Arial",
     "Helvetica", sans-serif;
   line-height: 1.6;
   color: var(--dark-gray);
@@ -130,10 +167,9 @@ header::before {
 }
 
 .aca-logo-img {
-  max-height: 40px;
+  max-height: 60px;
   width: auto;
-  margin-bottom: 8px;
-  filter: brightness(0) invert(1);
+  margin-bottom: 10px;
   transition: all 0.3s ease;
 }
 
@@ -689,6 +725,10 @@ section {
     margin-bottom: 30px;
   }
 
+  #credenciales-screen .aca-logo-img {
+    max-height: 80px;
+  }
+
   #credenciales-screen .aca-logo {
     font-size: 3.5em;
   }
@@ -728,6 +768,10 @@ section {
   #registro-screen header {
     min-height: 180px;
     padding: 30px 20px;
+  }
+
+  #registro-screen .aca-logo-img {
+    max-height: 70px;
   }
 }
 
