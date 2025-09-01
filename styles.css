@@ -579,6 +579,80 @@ section {
   color: var(--aca-blue);
 }
 
+/* Estilos para mensajes de confirmación */
+#error-list p {
+  margin: 10px 0;
+  padding: 15px;
+  border-radius: 6px;
+  line-height: 1.5;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Mensaje de confirmación de selección */
+.confirmation-message {
+  background: linear-gradient(135deg, 
+    rgba(76, 175, 80, 0.1) 0%, 
+    rgba(76, 175, 80, 0.05) 100%) !important;
+  border: 1px solid rgba(76, 175, 80, 0.3) !important;
+  color: #2e7d32 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+}
+
+/* Mensaje de éxito */
+.success-message {
+  background: linear-gradient(135deg, 
+    rgba(40, 167, 69, 0.1) 0%, 
+    rgba(40, 167, 69, 0.05) 100%) !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
+  color: #155724 !important;
+  font-weight: 600 !important;
+}
+
+/* Mensaje de información */
+.info-message {
+  background: linear-gradient(135deg, 
+    rgba(40, 45, 135, 0.1) 0%, 
+    rgba(40, 45, 135, 0.05) 100%) !important;
+  border: 1px solid rgba(40, 45, 135, 0.3) !important;
+  color: var(--aca-blue-dark) !important;
+  font-weight: 600 !important;
+}
+
+/* Mensaje de advertencia */
+.warning-message {
+  background: linear-gradient(135deg, 
+    rgba(255, 193, 7, 0.1) 0%, 
+    rgba(255, 193, 7, 0.05) 100%) !important;
+  border: 1px solid rgba(255, 193, 7, 0.3) !important;
+  color: #856404 !important;
+  font-weight: 600 !important;
+}
+
+/* Estilos para estados de delegación */
+.delegation-status {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  border-left: 3px solid var(--aca-blue);
+}
+
+.delegation-sender {
+  background: rgba(255, 152, 0, 0.1);
+  border-left-color: var(--aca-orange);
+  color: #e65100;
+}
+
+.delegation-receiver {
+  background: rgba(76, 175, 80, 0.1);
+  border-left-color: var(--success-green);
+  color: #2e7d32;
+}
+
 /* Scroll suave para el modal */
 .modal-content::-webkit-scrollbar {
     width: 8px;

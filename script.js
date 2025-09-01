@@ -788,8 +788,9 @@ function showConfirmation(message) {
     const modalAccept = document.getElementById('modal-accept');
     
     modalTitle.textContent = 'Confirmación de Selección';
-    errorList.innerHTML = `<p style="color: #4caf50; font-weight: bold;">${message}</p>`;
+    errorList.innerHTML = `<p class="confirmation-message">${message}</p>`;
     modalAccept.style.display = 'inline-block';
+    modalAccept.textContent = 'Aceptar';
     errorModal.style.display = 'block';
 }
 
@@ -809,10 +810,10 @@ function showSaveSuccessWithResumen() {
     
     // Mostrar el resumen en el modal con un mensaje de éxito
     errorList.innerHTML = `
-        <div style="color: #4caf50; font-weight: bold; margin-bottom: 15px;">
+        <div class="success-message">
             ✅ ¡Registro guardado exitosamente!
         </div>
-        <div style="margin-bottom: 15px;">
+        <div class="info-message">
             <strong>Resumen de lo guardado:</strong>
         </div>
         ${resumenHTML}
@@ -988,7 +989,7 @@ function showValidationSuccessWithResumen() {
     
     // Mostrar el resumen en el modal con un mensaje de confirmación
     errorList.innerHTML = `
-        <div style="color: #4caf50; font-weight: bold; margin-bottom: 15px;">
+        <div class="success-message">
             ✓ Validación exitosa. Revise el resumen y confirme si desea guardar el registro:
         </div>
         ${resumenHTML}
@@ -1151,7 +1152,7 @@ function updateResumen() {
                 ${delegoSuVoto ? (() => {
                     const delegacion = resumen.delegaciones.find(d => d.desde === t.id);
                     const apoderado = resumen.titulares.find(titular => titular.id === delegacion.hacia);
-                    return `<p style="color: #ff9800;"><strong>Estado:</strong> Poderdante - Delegó voto a ${apoderado.nombre}</p>`;
+                    return `<p class="delegation-sender"><strong>Estado:</strong> Poderdante - Delegó voto a ${apoderado.nombre}</p>`;
                 })() :
                     `<p><strong>Votos a ejercer:</strong> ${votosTotal} ${votosTotal === 1 ? '(voto propio)' : `(propio + ${votosExtra} delegados)`}</p>`
                 }
@@ -1159,7 +1160,7 @@ function updateResumen() {
                     const poderdantes = resumen.delegaciones
                         .filter(d => d.hacia === t.id)
                         .map(d => resumen.titulares.find(titular => titular.id === d.desde).nombre);
-                    return `<p style="color: #4caf50;"><strong>Estado:</strong> Apoderado - Recibe delegaciones de: ${poderdantes.join(', ')}</p>`;
+                    return `<p class="delegation-receiver"><strong>Estado:</strong> Apoderado - Recibe delegaciones de: ${poderdantes.join(', ')}</p>`;
                 })() : 
                     ''
                 }
@@ -1195,7 +1196,7 @@ function updateResumen() {
     }
 
     html += `
-        <div class="card" style="background-color: #e8f5e8; border: 2px solid #4caf50;">
+        <div class="card success-message" style="border: 2px solid var(--success-green);">
             <h3>Resumen de Votación</h3>
             <p><strong>Cooperativa:</strong> ${resumen.cooperativa.name}</p>
             <p><strong>Total votos de la cooperativa:</strong> ${resumen.cooperativa.votes}</p>
@@ -1205,8 +1206,8 @@ function updateResumen() {
             <p><strong>Suplentes designados:</strong> ${resumen.suplentes.length}</p>
             <p><strong>Delegaciones activas:</strong> ${resumen.delegaciones.length}</p>
             ${totalVotosEjercidos === resumen.cooperativa.votes ? 
-                '<p style="color: #4caf50; font-weight: bold;">✓ Todos los votos están representados</p>' :
-                '<p style="color: #ff9800; font-weight: bold;">⚠ Votos no representados: ' + (resumen.cooperativa.votes - totalVotosEjercidos) + '</p>'
+                '<p class="success-message" style="color: var(--success-green); font-weight: bold;">✓ Todos los votos están representados</p>' :
+                '<p style="color: var(--warning-yellow); font-weight: bold; background: rgba(255, 193, 7, 0.1); padding: 10px; border-radius: 4px;">⚠ Votos no representados: ' + (resumen.cooperativa.votes - totalVotosEjercidos) + '</p>'
             }
         </div>
     `;
