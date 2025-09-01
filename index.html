@@ -14,21 +14,21 @@
         <section id="cooperativa-section">
             <h2>Información de la Cooperativa</h2>
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group form-group-large">
                     <label for="cooperative">Seleccione Cooperativa:</label>
                     <select id="cooperative" name="cooperative" required>
                         <option value="">Seleccione una cooperativa</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group form-group-small">
                     <label for="code">Código:</label>
                     <input type="text" id="code" name="code" readonly>
                 </div>
-                <div class="form-group">
+                <div class="form-group form-group-small">
                     <label for="cuit">CUIT:</label>
                     <input type="text" id="cuit" name="cuit" readonly>
                 </div>
-                <div class="form-group">
+                <div class="form-group form-group-small">
                     <label for="votes">Cantidad de votos:</label>
                     <input type="number" id="votes" name="votes" readonly>
                 </div>
@@ -46,7 +46,7 @@
 
         <!-- Sección de Suplentes -->
         <section id="suplentes-section">
-            <h2>Suplentes (0-6)</h2>
+            <h2>Suplentes</h2>
             <div id="suplentes-container">
                 <!-- Los suplentes se agregarán dinámicamente -->
             </div>
@@ -71,16 +71,18 @@
         </section>
 
         <div class="button-container">
-            <button type="button" id="validar" class="btn-primary">Validar</button>
-            <button type="button" id="guardar" class="btn-primary">Guardar</button>
+            <button type="button" id="guardar" class="btn-primary" onclick="validateAndSave();">Guardar</button>
         </div>
 
         <!-- Modal para errores -->
         <div id="error-modal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h2>Errores de Validación</h2>
+                <h2 id="modal-title">Errores de Validación</h2>
                 <div id="error-list"></div>
+                <div class="modal-buttons">
+                    <button type="button" id="modal-accept" class="btn-primary" style="display: none;">Aceptar</button>
+                </div>
             </div>
         </div>
     </div>
