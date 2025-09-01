@@ -757,16 +757,34 @@ function validate() {
 }
 
 // Funciones de UI
+function showModal(modalElement) {
+    modalElement.style.display = 'block';
+    
+    // Asegurar que el modal aparezca en la parte superior
+    setTimeout(() => {
+        const modalContent = modalElement.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.scrollTop = 0;
+        }
+        // Scroll suave hacia arriba de la página para mostrar el modal
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Focus en el modal para accesibilidad
+        modalContent?.focus();
+    }, 50);
+}
+
 function showError(message) {
     const errorModal = document.getElementById('error-modal');
     const errorList = document.getElementById('error-list');
     const modalTitle = document.getElementById('modal-title');
     const modalAccept = document.getElementById('modal-accept');
     
-    modalTitle.textContent = 'Errores de Validación';
-    errorList.innerHTML = `<p class="error-message">${message}</p>`;
+    modalTitle.textContent = 'Error de Validación';
+    errorList.innerHTML = `<p class="error-message">❌ ${message}</p>`;
     modalAccept.style.display = 'none';
-    errorModal.style.display = 'block';
+    
+    showModal(errorModal);
 }
 
 function showErrors(errors) {
@@ -776,9 +794,10 @@ function showErrors(errors) {
     const modalAccept = document.getElementById('modal-accept');
     
     modalTitle.textContent = 'Errores de Validación';
-    errorList.innerHTML = errors.map(error => `<p class="error-message">${error}</p>`).join('');
+    errorList.innerHTML = errors.map(error => `<p class="error-message">❌ ${error}</p>`).join('');
     modalAccept.style.display = 'none';
-    errorModal.style.display = 'block';
+    
+    showModal(errorModal);
 }
 
 function showConfirmation(message) {
@@ -791,7 +810,8 @@ function showConfirmation(message) {
     errorList.innerHTML = `<p class="confirmation-message">${message}</p>`;
     modalAccept.style.display = 'inline-block';
     modalAccept.textContent = 'Aceptar';
-    errorModal.style.display = 'block';
+    
+    showModal(errorModal);
 }
 
 function showSaveSuccessWithResumen() {
