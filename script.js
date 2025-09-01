@@ -10,6 +10,17 @@ const state = {
     maxCartasPoder: 2
 };
 
+// Funciones de navegación entre pantallas
+function mostrarRegistro() {
+    document.getElementById('credenciales-screen').style.display = 'none';
+    document.getElementById('registro-screen').style.display = 'block';
+}
+
+function volverCredenciales() {
+    document.getElementById('registro-screen').style.display = 'none';
+    document.getElementById('credenciales-screen').style.display = 'block';
+}
+
 // Cargar los datos de las cooperativas desde el CSV
 async function loadCooperatives() {
     try {
@@ -936,6 +947,9 @@ Reglas de cartas poder:
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Event listener para el botón de continuar al registro
+    document.getElementById('continuar-registro').addEventListener('click', mostrarRegistro);
+
     // Cargar cooperativas
     loadCooperatives();
 

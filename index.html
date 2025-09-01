@@ -3,83 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Votación</title>
+    <title>Credenciales - Asamblea General Ordinaria 2025</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Registro de Votación</h1>
-
-        <!-- Sección de Selección de Cooperativa -->
-        <section id="cooperativa-section">
-            <h2>Información de la Cooperativa</h2>
-            <div class="form-row">
-                <div class="form-group form-group-large">
-                    <label for="cooperative">Seleccione Cooperativa:</label>
-                    <select id="cooperative" name="cooperative" required>
-                        <option value="">Seleccione una cooperativa</option>
-                    </select>
+        <!-- Pantalla de Credenciales -->
+        <div id="credenciales-screen">
+            <header>
+                <div class="aca-brand">
+                    <div class="aca-logo">ACA</div>
+                    <div class="aca-tagline">Asociación de Cooperativas Argentinas</div>
                 </div>
-                <div class="form-group form-group-small">
-                    <label for="code">Código:</label>
-                    <input type="text" id="code" name="code" readonly>
+                <h1>Credenciales</h1>
+                <h2>Asamblea General Ordinaria 2025</h2>
+            </header>
+
+            <main>
+                <div class="intro">
+                    <div class="clarifications">
+                        <h4>📅 Fecha de la Asamblea</h4>
+                        <p><strong>27 de Octubre de 2025</strong></p>
+                    </div>
+
+                    <div class="clarifications">
+                        <h4>📋 Descripción</h4>
+                        <p>Documentación para nominar delegados con derecho a voto en la <strong>Asamblea General Ordinaria</strong> de la <strong>Asociación de Cooperativas Argentinas Coop. Ltda.</strong></p>
+                    </div>
+
+                    <div class="clarifications">
+                        <h4>ℹ️ Información Importante</h4>
+                        <p>Esta documentación permitirá registrar a los delegados titulares y suplentes que representarán a su cooperativa en la asamblea, así como las cartas poder correspondientes.</p>
+                        <p>Asegúrese de completar toda la información requerida y verificar los datos antes de enviar el formulario.</p>
+                    </div>
+
+                    <div class="cta">
+                        <button type="button" id="continuar-registro" class="btn-primary">Continuar al Registro</button>
+                    </div>
                 </div>
-                <div class="form-group form-group-small">
-                    <label for="cuit">CUIT:</label>
-                    <input type="text" id="cuit" name="cuit" readonly>
+            </main>
+
+            <footer>
+                <p>&copy; 2025 Asociación de Cooperativas Argentinas Coop. Ltda. - Todos los derechos reservados</p>
+            </footer>
+        </div>
+
+        <!-- Pantalla de Registro de Votación (inicialmente oculta) -->
+        <div id="registro-screen" style="display: none;">
+            <header>
+                <button class="btn-back" onclick="volverCredenciales()">← Volver</button>
+                <div class="aca-brand">
+                    <div class="aca-logo">ACA</div>
+                    <div class="aca-tagline">Asociación de Cooperativas Argentinas</div>
                 </div>
-                <div class="form-group form-group-small">
-                    <label for="votes">Cantidad de votos:</label>
-                    <input type="number" id="votes" name="votes" readonly>
+                <h1>Registro de Votación</h1>
+                <h2>Asamblea General Ordinaria 2025</h2>
+            </header>
+
+            <main>
+                <!-- Sección de Selección de Cooperativa -->
+                <section id="cooperativa-section">
+                    <h2>Información de la Cooperativa</h2>
+                    <div class="form-row">
+                        <div class="form-group form-group-large">
+                            <label for="cooperative">Seleccione Cooperativa:</label>
+                            <select id="cooperative" name="cooperative" required>
+                                <option value="">Seleccione una cooperativa</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-small">
+                            <label for="code">Código:</label>
+                            <input type="text" id="code" name="code" readonly>
+                        </div>
+                        <div class="form-group form-group-small">
+                            <label for="cuit">CUIT:</label>
+                            <input type="text" id="cuit" name="cuit" readonly>
+                        </div>
+                        <div class="form-group form-group-small">
+                            <label for="votes">Cantidad de votos:</label>
+                            <input type="number" id="votes" name="votes" readonly>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Titulares -->
+                <section id="titulares-section">
+                    <h2>Titulares</h2>
+                    <div id="titulares-container">
+                        <!-- Los titulares se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" id="agregar-titular" class="btn-add">Agregar Titular</button>
+                </section>
+
+                <!-- Sección de Suplentes -->
+                <section id="suplentes-section">
+                    <h2>Suplentes</h2>
+                    <div id="suplentes-container">
+                        <!-- Los suplentes se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" id="agregar-suplente" class="btn-add">Agregar Suplente</button>
+                </section>
+
+                <!-- Sección de Cartas Poder -->
+                <section id="cartas-poder-section">
+                    <h2>Cartas Poder</h2>
+                    <div id="cartas-poder-container">
+                        <!-- Las cartas poder se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" id="agregar-carta-poder" class="btn-add">Agregar Carta Poder</button>
+                </section>
+
+                <!-- Sección de Resumen -->
+                <section id="resumen-section">
+                    <h2>Resumen de Votación</h2>
+                    <div id="resumen-container">
+                        <!-- El resumen se generará dinámicamente -->
+                    </div>
+                </section>
+
+                <div class="button-container">
+                    <button type="button" id="guardar" class="btn-primary" onclick="validateAndSave();">Guardar</button>
                 </div>
-            </div>
-        </section>
+            </main>
 
-        <!-- Sección de Titulares -->
-        <section id="titulares-section">
-            <h2>Titulares</h2>
-            <div id="titulares-container">
-                <!-- Los titulares se agregarán dinámicamente -->
-            </div>
-            <button type="button" id="agregar-titular" class="btn-add">Agregar Titular</button>
-        </section>
-
-        <!-- Sección de Suplentes -->
-        <section id="suplentes-section">
-            <h2>Suplentes</h2>
-            <div id="suplentes-container">
-                <!-- Los suplentes se agregarán dinámicamente -->
-            </div>
-            <button type="button" id="agregar-suplente" class="btn-add">Agregar Suplente</button>
-        </section>
-
-        <!-- Sección de Cartas Poder -->
-        <section id="cartas-poder-section">
-            <h2>Cartas Poder</h2>
-            <div id="cartas-poder-container">
-                <!-- Las cartas poder se agregarán dinámicamente -->
-            </div>
-            <button type="button" id="agregar-carta-poder" class="btn-add">Agregar Carta Poder</button>
-        </section>
-
-        <!-- Sección de Resumen -->
-        <section id="resumen-section">
-            <h2>Resumen de Votación</h2>
-            <div id="resumen-container">
-                <!-- El resumen se generará dinámicamente -->
-            </div>
-        </section>
-
-        <div class="button-container">
-            <button type="button" id="guardar" class="btn-primary" onclick="validateAndSave();">Guardar</button>
+            <footer>
+                <p>&copy; 2025 Asociación de Cooperativas Argentinas Coop. Ltda. - Todos los derechos reservados</p>
+            </footer>
         </div>
 
         <!-- Modal para errores -->
         <div id="error-modal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2 id="modal-title">Errores de Validación</h2>
-                <div id="error-list"></div>
+                <div class="modal-header">
+                    <h2 id="modal-title">Errores de Validación</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="error-list"></div>
+                </div>
                 <div class="modal-buttons">
                     <button type="button" id="modal-accept" class="btn-primary" style="display: none;">Aceptar</button>
                 </div>
