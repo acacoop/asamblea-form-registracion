@@ -1,35 +1,35 @@
 /* Importación de Basier Circle (si tienes los archivos de fuente) */
 @font-face {
-  font-family: 'Basier Circle';
-  src: url('fonts/BasierCircle-Regular.woff2') format('woff2'),
-       url('fonts/BasierCircle-Regular.woff') format('woff');
+  font-family: "Basier Circle";
+  src: url("fonts/BasierCircle-Regular.woff2") format("woff2"),
+    url("fonts/BasierCircle-Regular.woff") format("woff");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Basier Circle';
-  src: url('fonts/BasierCircle-Medium.woff2') format('woff2'),
-       url('fonts/BasierCircle-Medium.woff') format('woff');
+  font-family: "Basier Circle";
+  src: url("fonts/BasierCircle-Medium.woff2") format("woff2"),
+    url("fonts/BasierCircle-Medium.woff") format("woff");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Basier Circle';
-  src: url('fonts/BasierCircle-SemiBold.woff2') format('woff2'),
-       url('fonts/BasierCircle-SemiBold.woff') format('woff');
+  font-family: "Basier Circle";
+  src: url("fonts/BasierCircle-SemiBold.woff2") format("woff2"),
+    url("fonts/BasierCircle-SemiBold.woff") format("woff");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Basier Circle';
-  src: url('fonts/BasierCircle-Bold.woff2') format('woff2'),
-       url('fonts/BasierCircle-Bold.woff') format('woff');
+  font-family: "Basier Circle";
+  src: url("fonts/BasierCircle-Bold.woff2") format("woff2"),
+    url("fonts/BasierCircle-Bold.woff") format("woff");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -61,12 +61,15 @@
 }
 
 body {
-  font-family: "Basier Circle", "Inter", "Nunito Sans", "Neue Haas Grotesk Pro", "Heebo", "Arial",
-    "Helvetica", sans-serif;
+  font-family: "Basier Circle", "Inter", "Nunito Sans", "Neue Haas Grotesk Pro",
+    "Heebo", "Arial", "Helvetica", sans-serif;
   line-height: 1.6;
   color: var(--dark-gray);
-  background: linear-gradient(rgba(245, 245, 245, 0.95), rgba(245, 245, 245, 0.95)), 
-              url('background.jpg') center/cover no-repeat fixed;
+  background: linear-gradient(
+      rgba(245, 245, 245, 0.95),
+      rgba(245, 245, 245, 0.95)
+    ),
+    url("background.jpg") center/cover no-repeat fixed;
   min-height: 100vh;
   padding: 5px;
   display: flex;
@@ -81,7 +84,7 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('background.jpg') center/cover no-repeat;
+  background: url("background.jpg") center/cover no-repeat;
   filter: blur(3px) brightness(1.1) opacity(0.3);
   z-index: -2;
 }
@@ -93,10 +96,12 @@ body::after {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, 
-    rgba(40, 45, 135, 0.1) 0%, 
-    rgba(255, 145, 0, 0.05) 50%, 
-    rgba(40, 45, 135, 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(40, 45, 135, 0.1) 0%,
+    rgba(255, 145, 0, 0.05) 50%,
+    rgba(40, 45, 135, 0.1) 100%
+  );
   z-index: -1;
 }
 
@@ -124,7 +129,11 @@ header {
   flex-direction: column;
   align-items: center;
   padding: 15px 10px;
-  background: linear-gradient(135deg, var(--aca-blue) 0%, var(--aca-blue-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--aca-blue) 0%,
+    var(--aca-blue-dark) 100%
+  );
   color: var(--white);
   position: relative;
   border-top-left-radius: 8px;
@@ -133,6 +142,7 @@ header {
   justify-content: center;
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 20px rgba(40, 45, 135, 0.3);
+  width: 1000px;
 }
 
 header::before {
@@ -154,6 +164,7 @@ header::before {
   margin-bottom: 10px;
   position: relative;
   z-index: 2;
+  justify-content: center;
 }
 
 .aca-logo {
@@ -306,8 +317,23 @@ span {
 }
 
 .form-row .btn-remove {
-  margin-bottom: 15px;
   flex-shrink: 0;
+}
+
+.formGroup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--dark-gray);
+  font-size: 0.9em;
+  width: 750px;
 }
 
 .form-group label {
@@ -321,7 +347,8 @@ span {
 .form-group input,
 .form-group textarea,
 .form-group select,
-input, select {
+input,
+select {
   width: 100%;
   padding: 12px;
   border: 2px solid var(--border-gray);
@@ -334,7 +361,8 @@ input, select {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus,
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--aca-blue);
   box-shadow: 0 0 8px rgba(40, 45, 135, 0.2);
@@ -355,6 +383,7 @@ h2 {
   border-bottom: 2px solid var(--border-gray);
   font-size: 1.4em;
   font-weight: 600;
+  width: 100%;
 }
 
 /* Estilos de secciones */
@@ -416,6 +445,7 @@ section {
   transition: all 0.3s ease;
   min-height: 36px;
   min-width: 80px;
+  margin: 0;
 }
 
 .btn-remove:hover {
@@ -464,6 +494,13 @@ section {
   margin-top: 20px;
 }
 
+.formBtnGroup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 /* Tarjetas de titulares y suplentes */
 .card {
   background-color: rgba(255, 255, 255, 0.95);
@@ -496,7 +533,11 @@ section {
 }
 
 .modal-content {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
   margin: 2% auto;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -556,10 +597,23 @@ section {
   opacity: 0.7;
 }
 
+#titulares-section,
+#suplentes-section,
+#cartas-poder-section,
+#resumen-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: start;
+  width: 850px;
+}
+
 .error-message {
-  background: linear-gradient(135deg, 
-    rgba(220, 53, 69, 0.1) 0%, 
-    rgba(220, 53, 69, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(220, 53, 69, 0.1) 0%,
+    rgba(220, 53, 69, 0.05) 100%
+  );
   border: 1px solid rgba(220, 53, 69, 0.3);
   border-left: 4px solid var(--error-red);
   color: #721c24;
@@ -614,9 +668,11 @@ section {
 
 /* Mensaje de confirmación de selección */
 .confirmation-message {
-  background: linear-gradient(135deg, 
-    rgba(76, 175, 80, 0.1) 0%, 
-    rgba(76, 175, 80, 0.05) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(76, 175, 80, 0.1) 0%,
+    rgba(76, 175, 80, 0.05) 100%
+  ) !important;
   border: 1px solid rgba(76, 175, 80, 0.3) !important;
   color: #2e7d32 !important;
   font-weight: 600 !important;
@@ -626,9 +682,11 @@ section {
 
 /* Mensaje de éxito */
 .success-message {
-  background: linear-gradient(135deg, 
-    rgba(40, 167, 69, 0.1) 0%, 
-    rgba(40, 167, 69, 0.05) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(40, 167, 69, 0.1) 0%,
+    rgba(40, 167, 69, 0.05) 100%
+  ) !important;
   border: 1px solid rgba(40, 167, 69, 0.3) !important;
   color: #155724 !important;
   font-weight: 600 !important;
@@ -636,9 +694,11 @@ section {
 
 /* Mensaje de información */
 .info-message {
-  background: linear-gradient(135deg, 
-    rgba(40, 45, 135, 0.1) 0%, 
-    rgba(40, 45, 135, 0.05) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(40, 45, 135, 0.1) 0%,
+    rgba(40, 45, 135, 0.05) 100%
+  ) !important;
   border: 1px solid rgba(40, 45, 135, 0.3) !important;
   color: var(--aca-blue-dark) !important;
   font-weight: 600 !important;
@@ -646,9 +706,11 @@ section {
 
 /* Mensaje de advertencia */
 .warning-message {
-  background: linear-gradient(135deg, 
-    rgba(255, 193, 7, 0.1) 0%, 
-    rgba(255, 193, 7, 0.05) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.1) 0%,
+    rgba(255, 193, 7, 0.05) 100%
+  ) !important;
   border: 1px solid rgba(255, 193, 7, 0.3) !important;
   color: #856404 !important;
   font-weight: 600 !important;
@@ -677,20 +739,20 @@ section {
 
 /* Scroll suave para el modal */
 .modal-content::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .modal-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  background: #f1f1f1;
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
+  background: #888;
+  border-radius: 4px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-    background: #555;
+  background: #555;
 }
 
 /* Estilos para el resumen */
@@ -722,6 +784,18 @@ section {
   padding: 15px;
   border-radius: 8px;
   border: 1px solid var(--border-gray);
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  flex-direction: column;
+  gap: 30px;
+  width: 800px;
+}
+
+.cooperativa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 /* Indicadores de estado */
@@ -765,11 +839,11 @@ section {
   .form-row {
     flex-direction: column;
   }
-  
+
   .form-group {
     width: 100%;
   }
-  
+
   .container {
     padding: 10px;
   }
@@ -882,7 +956,11 @@ section {
 
 /* Clarifications */
 .clarifications {
-  background: linear-gradient(135deg, rgba(248, 249, 250, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(248, 249, 250, 0.98) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
   border: 1px solid rgba(224, 224, 224, 0.6);
   border-left: 4px solid var(--aca-blue);
   border-radius: 8px;
@@ -901,10 +979,12 @@ section {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, 
-    rgba(40, 45, 135, 0.02) 0%, 
-    rgba(255, 145, 0, 0.01) 50%, 
-    rgba(40, 45, 135, 0.02) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(40, 45, 135, 0.02) 0%,
+    rgba(255, 145, 0, 0.01) 50%,
+    rgba(40, 45, 135, 0.02) 100%
+  );
   border-radius: 8px;
   z-index: -1;
 }
@@ -949,9 +1029,10 @@ section {
 }
 
 #credenciales-screen .clarifications {
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   text-align: left;
+  min-height: 200px;
 }
 
 #credenciales-screen .clarifications h4 {
@@ -1001,7 +1082,11 @@ footer {
   justify-content: center;
   align-items: center;
   padding: 15px;
-  background: linear-gradient(135deg, var(--aca-blue) 0%, var(--aca-blue-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--aca-blue) 0%,
+    var(--aca-blue-dark) 100%
+  );
   color: var(--white);
   margin-top: auto;
   border-bottom-left-radius: 8px;
