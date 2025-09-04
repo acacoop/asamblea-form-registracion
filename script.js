@@ -165,9 +165,16 @@ function clearCooperativeData() {
   document.getElementById("votes").value = "";
 
   // Limpiar contenedores
-  document.getElementById("titulares-container").innerHTML = "";
-  document.getElementById("suplentes-container").innerHTML = "";
-  document.getElementById("cartas-poder-container").innerHTML = "";
+  // Limpiar contenedores de forma segura
+  safeSetInnerHTML("titulares-container", "");
+  safeSetInnerHTML("suplentes-container", "");
+  safeSetInnerHTML("cartas-poder-container", "");
+
+  // Ocultar sección de resumen
+  const resumenSection = document.getElementById("resumen-section");
+  if (resumenSection) {
+    resumenSection.style.display = "none";
+  }
 
   // Restaurar textos por defecto
   document.querySelector("#titulares-section h2").textContent = "Titulares";
@@ -185,6 +192,13 @@ function clearCooperativeData() {
 }
 
 // Funciones de utilidad
+function safeSetInnerHTML(elementId, content) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.innerHTML = content;
+  }
+}
+
 function createUniqueId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -443,6 +457,11 @@ function updateButtonStates() {
   const addTitularBtn = document.getElementById("agregar-titular");
   const addSuplenteBtn = document.getElementById("agregar-suplente");
   const addCartaPoderBtn = document.getElementById("agregar-carta-poder");
+
+  // Si los botones no existen (estamos en pantalla de credenciales), salir
+  if (!addTitularBtn || !addSuplenteBtn || !addCartaPoderBtn) {
+    return;
+  }
 
   if (!state.cooperativaSeleccionada) {
     // Sin cooperativa seleccionada - botones deshabilitados y texto básico
@@ -921,10 +940,16 @@ function showSaveSuccessWithResumen() {
 
   modalTitle.textContent = "Registro Guardado Exitosamente";
 
+  // Mostrar la sección de resumen en la página
+  const resumenSection = document.getElementById("resumen-section");
+  if (resumenSection) {
+    resumenSection.style.display = "block";
+  }
+
   // Generar el resumen completo
   updateResumen();
   const resumenContainer = document.getElementById("resumen-container");
-  const resumenHTML = resumenContainer.innerHTML;
+  const resumenHTML = resumenContainer ? resumenContainer.innerHTML : "";
 
   // Mostrar el resumen en el modal con un mensaje de éxito
   errorList.innerHTML = `
@@ -1248,6 +1273,21 @@ function generateResumen() {
 function updateResumen() {
   const resumen = generateResumen();
   const resumenContainer = document.getElementById("resumen-container");
+  
+  // Si el contenedor no existe (estamos en pantalla de credenciales), salir
+  if (!resumenContainer) {
+    return;
+  }
+  
+  // Si no hay cooperativa seleccionada, mostrar mensaje vacío
+  if (!resumen.cooperativa) {
+    resumenContainer.innerHTML = `
+      <div class="card" style="text-align: center; color: #666;">
+        <p>Seleccione una cooperativa para ver el resumen de votación</p>
+      </div>
+    `;
+    return;
+  }
 
   let html = `<div class="card">
         <h3>Cooperativa: ${resumen.cooperativa.name}</h3>
@@ -1396,10 +1436,16 @@ function handleCooperativeChange() {
       state.suplentes = [];
       state.cartasPoder = [];
 
-      document.getElementById("titulares-container").innerHTML = "";
-      document.getElementById("suplentes-container").innerHTML = "";
-      document.getElementById("cartas-poder-container").innerHTML = "";
-      document.getElementById("resumen-container").innerHTML = "";
+      safeSetInnerHTML("titulares-container", "");
+      safeSetInnerHTML("suplentes-container", "");
+      safeSetInnerHTML("cartas-poder-container", "");
+      safeSetInnerHTML("resumen-container", "");
+
+      // Ocultar sección de resumen al cambiar cooperativa
+      const resumenSection = document.getElementById("resumen-section");
+      if (resumenSection) {
+        resumenSection.style.display = "none";
+      }
 
       // Actualizar límites según los votos de la cooperativa
       state.maxTitulares = Math.min(parseInt(selectedCoop.votes), 6);
@@ -1433,49 +1479,69 @@ Reglas de cartas poder:
 // Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
   // Event listener para el botón de continuar al registro
-  document
-    .getElementById("continuar-registro")
-    .addEventListener("click", mostrarRegistro);
+  const continuarBtn = document.getElementById("continuar-registro");
+  if (continuarBtn) {
+    continuarBtn.addEventListener("click", mostrarRegistro);
+  }
 
   // Cargar cooperativas
   loadCooperatives();
 
-  // Eventos de botones principales
-  document
-    .getElementById("agregar-titular")
-    .addEventListener("click", addTitular);
-  document
-    .getElementById("agregar-suplente")
-    .addEventListener("click", addSuplente);
-  document
-    .getElementById("agregar-carta-poder")
-    .addEventListener("click", addCartaPoder);
+  // Eventos de botones principales - solo si existen
+  const agregarTitularBtn = document.getElementById("agregar-titular");
+  if (agregarTitularBtn) {
+    agregarTitularBtn.addEventListener("click", addTitular);
+  }
+  
+  const agregarSuplenteBtn = document.getElementById("agregar-suplente");
+  if (agregarSuplenteBtn) {
+    agregarSuplenteBtn.addEventListener("click", addSuplente);
+  }
+  
+  const agregarCartaPoderBtn = document.getElementById("agregar-carta-poder");
+  if (agregarCartaPoderBtn) {
+    agregarCartaPoderBtn.addEventListener("click", addCartaPoder);
+  }
   // El botón guardar ahora usa onclick en el HTML
 
-  // Evento de cambio de CAR
-  document
-    .getElementById("car-select")
-    .addEventListener("change", filterCooperativesByCAR);
+  // Evento de cambio de CAR - solo si existe
+  const carSelect = document.getElementById("car-select");
+  if (carSelect) {
+    carSelect.addEventListener("change", filterCooperativesByCAR);
+  }
 
-  // Evento de cambio de cooperativa
-  document
-    .getElementById("cooperative")
-    .addEventListener("change", handleCooperativeChange);
+  // Evento de cambio de cooperativa - solo si existe
+  const cooperativeSelect = document.getElementById("cooperative");
+  if (cooperativeSelect) {
+    cooperativeSelect.addEventListener("change", handleCooperativeChange);
+  }
 
-  // Cerrar modal
-  document.querySelector(".close").addEventListener("click", () => {
-    document.getElementById("error-modal").style.display = "none";
-  });
+  // Cerrar modal - solo si existe
+  const closeBtn = document.querySelector(".close");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      const modal = document.getElementById("error-modal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
 
-  // Botón aceptar del modal
-  document.getElementById("modal-accept").addEventListener("click", () => {
-    document.getElementById("error-modal").style.display = "none";
-  });
+  // Botón aceptar del modal - solo si existe
+  const modalAcceptBtn = document.getElementById("modal-accept");
+  if (modalAcceptBtn) {
+    modalAcceptBtn.addEventListener("click", () => {
+      const modal = document.getElementById("error-modal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
 
   // Cerrar modal al hacer clic fuera
   window.addEventListener("click", (event) => {
     const modal = document.getElementById("error-modal");
-    if (event.target === modal) {
+    if (modal && event.target === modal) {
       modal.style.display = "none";
     }
   });
