@@ -998,6 +998,283 @@ section {
   min-height: 200px;
 }
 
+/* Estilos para el formulario de login */
+.login-form {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid var(--aca-blue);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  max-width: 500px;
+  width: 100%;
+  margin: 20px auto;
+}
+
+.login-form h3 {
+  color: var(--aca-blue);
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+.login-form .form-group {
+  margin-bottom: 20px;
+}
+
+.login-form label {
+  color: var(--dark-gray);
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid var(--border-gray);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--aca-blue);
+  box-shadow: 0 0 12px rgba(40, 45, 135, 0.2);
+  background-color: #fff;
+}
+
+.login-form .btn-login {
+  background: linear-gradient(135deg, var(--aca-blue) 0%, var(--aca-blue-dark) 100%);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  min-height: 50px;
+  margin-top: 10px;
+  box-shadow: 0 4px 15px rgba(40, 45, 135, 0.3);
+}
+
+.login-form .btn-login:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--aca-orange) 0%, #e65100 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 145, 0, 0.4);
+}
+
+.login-form .btn-login:disabled {
+  background: linear-gradient(135deg, #cccccc 0%, #999999 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Estilos para la información de cooperativa autenticada */
+.cooperativa-info {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.cooperativa-info .info-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.cooperativa-info .form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.cooperativa-info .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cooperativa-info .form-group-large {
+  flex: 2;
+}
+
+.cooperativa-info .form-group-small {
+  flex: 1;
+}
+
+.cooperativa-info .form-label {
+  font-weight: 600;
+  color: var(--aca-blue);
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cooperativa-info .info-value {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  font-weight: 500;
+  color: #333;
+  min-height: 20px;
+}
+
+.cooperativa-info .btn-logout {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.cooperativa-info .btn-logout:hover {
+  background-color: #c82333;
+}
+
+/* Responsive para dispositivos móviles */
+@media (max-width: 768px) {
+  .cooperativa-info .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .cooperativa-info .form-group-large,
+  .cooperativa-info .form-group-small {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+.cooperativa-info h3 {
+  color: var(--aca-blue);
+  margin-bottom: 20px;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.cooperativa-info .cooperativa-datos {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.cooperativa-info .cooperativa-datos h4 {
+  color: var(--aca-blue);
+  margin: 0 0 10px 0;
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.cooperativa-info .cooperativa-datos p {
+  margin: 5px 0;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.cooperativa-info .btn-continuar {
+  background: linear-gradient(135deg, var(--success-green) 0%, #2e7d32 100%);
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  min-height: 50px;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+  margin-top: 10px;
+}
+
+.cooperativa-info .btn-continuar:hover {
+  background: linear-gradient(135deg, var(--aca-orange) 0%, #e65100 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 145, 0, 0.4);
+}
+
+.cooperativa-info .btn-logout {
+  background: transparent;
+  color: var(--text-gray);
+  border: 2px solid var(--border-gray);
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-left: 15px;
+}
+
+.cooperativa-info .btn-logout:hover {
+  border-color: var(--error-red);
+  color: var(--error-red);
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+/* Mensaje de error de login */
+.login-error {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-left: 4px solid var(--error-red);
+  color: #721c24;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-weight: 500;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+}
+
+/* Estados ocultos */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive para login */
+@media (max-width: 768px) {
+  .login-form {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .cooperativa-info {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .cooperativa-info .btn-logout {
+    margin-left: 0;
+    margin-top: 10px;
+    display: block;
+    width: 100%;
+  }
+}
+
 #credenciales-screen .clarifications h4 {
   display: flex;
   align-items: center;

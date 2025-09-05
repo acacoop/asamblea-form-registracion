@@ -48,6 +48,47 @@
             </div>
 
             <div class="clarifications">
+              <h4>🔐 Acceso Seguro</h4>
+              <p>
+                Para acceder al formulario, ingrese el código de su cooperativa y el código verificador proporcionado.
+                Este sistema garantiza que solo personal autorizado pueda registrar los datos de cada cooperativa.
+              </p>
+            </div>
+
+            <!-- Formulario de Login -->
+            <div class="login-form">
+              <h3>Ingreso de Cooperativa</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="codigo-cooperativa">Código de Cooperativa:</label>
+                  <input 
+                    type="text" 
+                    id="codigo-cooperativa" 
+                    name="codigo-cooperativa" 
+                    placeholder="Ej: 123"
+                    required
+                    autocomplete="off"
+                  >
+                </div>
+                <div class="form-group">
+                  <label for="codigo-verificador">Código Verificador:</label>
+                  <input 
+                    type="text" 
+                    id="codigo-verificador" 
+                    name="codigo-verificador" 
+                    placeholder="Ej: ABC123"
+                    required
+                    autocomplete="off"
+                  >
+                </div>
+              </div>
+              <div class="login-error" id="login-error" style="display: none;"></div>
+              <div class="cta">
+                <button type="button" id="btn-login" class="btn-primary">Acceder al Formulario</button>
+              </div>
+            </div>
+
+            <div class="clarifications">
               <h4>ℹ️ Información Importante</h4>
               <p>
                 Esta documentación permitirá registrar a los delegados titulares
@@ -58,12 +99,6 @@
                 Asegúrese de completar toda la información requerida y verificar
                 los datos antes de enviar el formulario.
               </p>
-            </div>
-
-            <div class="cta">
-              <button type="button" id="continuar-registro" class="btn-primary">
-                Continuar al Registro
-              </button>
             </div>
           </div>
         </main>
@@ -94,40 +129,37 @@
         </header>
 
         <main>
-          <!-- Sección de Selección de Cooperativa -->
+          <!-- Sección de Información de Cooperativa Autenticada -->
           <section id="cooperativa-section">
             <h2>Información de la Cooperativa</h2>
-            <div class="cooperativa-form">
-              <div class="form-row">
-                <div class="form-group form-group-large">
-                  <label class="form-label" for="car-select"
-                    >Seleccione CAR:</label
-                  >
-                  <select id="car-select" name="car-select" required>
-                    <option value="">Seleccione un CAR</option>
-                  </select>
+            <div class="cooperativa-info">
+              <div class="info-card">
+                <div class="form-row">
+                  <div class="form-group form-group-large">
+                    <label class="form-label">Cooperativa:</label>
+                    <div class="info-value" id="cooperativa-nombre">-</div>
+                  </div>
+                  <div class="form-group form-group-small">
+                    <label class="form-label">Código:</label>
+                    <div class="info-value" id="cooperativa-codigo">-</div>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group form-group-small">
+                    <label class="form-label">CAR:</label>
+                    <div class="info-value" id="cooperativa-car">-</div>
+                  </div>
+                  <div class="form-group form-group-small">
+                    <label class="form-label">Votos:</label>
+                    <div class="info-value" id="cooperativa-votos">-</div>
+                  </div>
+                  <div class="form-group form-group-small">
+                    <label class="form-label">Suplentes:</label>
+                    <div class="info-value" id="cooperativa-suplentes">-</div>
+                  </div>
                 </div>
               </div>
-              <div class="form-row">
-                <div class="form-group form-group-large">
-                  <label class="form-label" for="cooperative"
-                    >Seleccione Cooperativa:</label
-                  >
-                  <select id="cooperative" name="cooperative" required>
-                    <option value="">Primero seleccione un CAR</option>
-                  </select>
-                </div>
-                <div class="form-group form-group-small">
-                  <label class="form-label" for="code">Código:</label>
-                  <input type="text" id="code" name="code" readonly />
-                </div>
-                <div class="form-group form-group-small">
-                  <label class="form-label" for="votes"
-                    >Cantidad de votos:</label
-                  >
-                  <input type="number" id="votes" name="votes" readonly />
-                </div>
-              </div>
+              <button type="button" id="btn-logout" class="btn-logout">Cerrar Sesión</button>
             </div>
           </section>
 

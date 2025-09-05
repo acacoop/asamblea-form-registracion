@@ -5,6 +5,7 @@ const state = {
   cartasPoder: [],
   cooperativas: [],
   cooperativaSeleccionada: null,
+  usuarioAutenticado: false,
   maxTitulares: 6,
   maxSuplentes: 6,
   maxCartasPoder: 2,
@@ -12,13 +13,313 @@ const state = {
 
 // Configuración del endpoint
 const config = {
-  // Cambia esta URL por tu endpoint real
-  apiEndpoint: "https://tu-endpoint-aqui.com/api/registro-asamblea",
+  // Endpoint de Power Automate para envío de datos
+  apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/de424a7251e74d6e861544b4c6c41352/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=si_BRNHv_4rn9mFJysIEFomXlAtPaqOUq-D-jWl74Og",
+  // Endpoint para autenticación de cooperativas (reemplazar con tu endpoint)
+  authEndpoint: "https://tu-dominio.com/api/auth/cooperativa",
   timeout: 30000, // 30 segundos
 };
 
+// Funciones de autenticación
+async function intentarLogin() {
+  const codigoCooperativa = document.getElementById('codigo-cooperativa').value.trim();
+  const codigoVerificador = document.getElementById('codigo-verificador').value.trim();
+  const errorElement = document.getElementById('login-error');
+  const loginBtn = document.getElementById('btn-login');
+  
+  // Limpiar error anterior
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+  
+  // Validar campos
+  if (!codigoCooperativa || !codigoVerificador) {
+    mostrarErrorLogin('Por favor complete ambos campos');
+    return;
+  }
+  
+  // Deshabilitar botón durante la validación
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Verificando...';
+  
+  try {
+    console.log('🔐 Intentando autenticación con endpoint:', { codigoCooperativa, codigoVerificador });
+    
+    // Llamar al endpoint de autenticación
+    const cooperativa = await autenticarConEndpoint(codigoCooperativa, codigoVerificador);
+    
+    if (cooperativa) {
+      // Autenticación exitosa
+      state.usuarioAutenticado = true;
+      state.cooperativaSeleccionada = cooperativa;
+      
+      console.log('✅ Autenticación exitosa para:', cooperativa.name);
+      
+      // Ocultar pantalla de credenciales y mostrar pantalla de registro
+      const credencialesScreen = document.getElementById('credenciales-screen');
+      const registroScreen = document.getElementById('registro-screen');
+      
+      if (credencialesScreen && registroScreen) {
+        credencialesScreen.style.display = 'none';
+        registroScreen.style.display = 'block';
+        
+        // Mostrar información de cooperativa
+        mostrarInformacionCooperativa(cooperativa);
+        
+        // Actualizar estados de botones después del login
+        updateButtonStates();
+      } else {
+        console.error('❌ No se encontraron las pantallas de credenciales o registro');
+        mostrarErrorLogin('Error al cambiar de pantalla');
+      }
+      
+    } else {
+      mostrarErrorLogin('Código de cooperativa o código verificador incorrecto');
+    }
+  } catch (error) {
+    console.error('❌ Error en autenticación:', error);
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      mostrarErrorLogin('Error de conexión. Verifique su internet e intente nuevamente');
+    } else if (error.message.includes('404')) {
+      mostrarErrorLogin('Servicio de autenticación no disponible');
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+      mostrarErrorLogin('Credenciales incorrectas');
+    } else {
+      mostrarErrorLogin('Error al verificar credenciales: ' + error.message);
+    }
+  } finally {
+    // Rehabilitar botón
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Acceder';
+  }
+}
+
+// Nueva función para autenticar contra el endpoint
+async function autenticarConEndpoint(codigoCooperativa, codigoVerificador) {
+  try {
+    const response = await fetch(config.authEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        codigo_cooperativa: codigoCooperativa,
+        codigo_verificador: codigoVerificador
+      })
+    });
+    
+    console.log('🌐 Respuesta del endpoint de autenticación:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // Credenciales incorrectas
+        return null;
+      } else {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const responseText = await response.text();
+    console.log('📝 Contenido de respuesta:', responseText);
+    
+    if (!responseText.trim()) {
+      throw new Error('Respuesta vacía del servidor');
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Error al parsear JSON:', parseError);
+      throw new Error('Respuesta del servidor no válida');
+    }
+    
+    // Verificar que la respuesta tenga la estructura esperada
+    if (data && data.cooperativa) {
+      console.log('✅ Datos de cooperativa recibidos:', data.cooperativa);
+      return data.cooperativa;
+    } else if (data && data.success === false) {
+      // El endpoint indica que las credenciales son incorrectas
+      return null;
+    } else {
+      console.error('❌ Estructura de respuesta inesperada:', data);
+      throw new Error('Estructura de respuesta del servidor no válida');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en autenticarConEndpoint:', error);
+    throw error;
+  }
+}
+
+function mostrarErrorLogin(mensaje) {
+  let errorElement = document.getElementById('login-error');
+  if (!errorElement) {
+    errorElement = document.createElement('div');
+    errorElement.id = 'login-error';
+    errorElement.className = 'login-error';
+    const loginForm = document.getElementById('login-form');
+    loginForm.appendChild(errorElement);
+  }
+  
+  errorElement.textContent = mensaje;
+  errorElement.style.display = 'block';
+}
+
+function mostrarInformacionCooperativa(cooperativa) {
+  console.log('🔄 Mostrando información de cooperativa:', cooperativa.name);
+  
+  // Actualizar datos de la cooperativa autenticada con verificación de existencia
+  const nombreElement = document.getElementById('cooperativa-nombre');
+  const codigoElement = document.getElementById('cooperativa-codigo');
+  const carElement = document.getElementById('cooperativa-car');
+  const votosElement = document.getElementById('cooperativa-votos');
+  const suplentesElement = document.getElementById('cooperativa-suplentes');
+  
+  if (nombreElement) {
+    nombreElement.textContent = cooperativa.name;
+    console.log('✅ Nombre actualizado:', cooperativa.name);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-nombre no encontrado');
+  }
+  
+  if (codigoElement) {
+    codigoElement.textContent = cooperativa.code;
+    console.log('✅ Código actualizado:', cooperativa.code);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-codigo no encontrado');
+  }
+  
+  if (carElement) {
+    carElement.textContent = `CAR ${cooperativa.CAR} - ${cooperativa['CAR Nombre'] || 'No disponible'}`;
+    console.log('✅ CAR actualizado');
+  } else {
+    console.warn('⚠️ Elemento cooperativa-car no encontrado');
+  }
+  
+  if (votosElement) {
+    votosElement.textContent = cooperativa.votes;
+    console.log('✅ Votos actualizados:', cooperativa.votes);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-votos no encontrado');
+  }
+  
+  if (suplentesElement) {
+    suplentesElement.textContent = cooperativa.substitutes;
+    console.log('✅ Suplentes actualizados:', cooperativa.substitutes);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-suplentes no encontrado');
+  }
+  
+  console.log('✅ Información de cooperativa procesada exitosamente');
+  
+  // Preparar los límites según los votos de la cooperativa
+  state.maxTitulares = cooperativa.votes || 6;
+  state.maxSuplentes = cooperativa.substitutes || 6;
+  
+  // Limpiar datos anteriores
+  state.titulares = [];
+  state.suplentes = [];
+  state.cartasPoder = [];
+}
+
+function continuarAlFormulario() {
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    mostrarErrorLogin('Error: No hay una sesión válida');
+    return;
+  }
+  
+  // Cambiar a la pantalla de registro
+  mostrarRegistro();
+  
+  // Actualizar la información de la cooperativa en el formulario de registro
+  actualizarDatosCooperativaEnFormulario();
+  
+  // Actualizar títulos con información de la cooperativa
+  actualizarTitulosConLimites();
+}
+
+function actualizarDatosCooperativaEnFormulario() {
+  if (!state.cooperativaSeleccionada) return;
+  
+  const coop = state.cooperativaSeleccionada;
+  
+  // No necesitamos campos de selección, la cooperativa ya está determinada
+  // Solo actualizamos la información visible si hay campos específicos
+  const codeField = document.getElementById("code");
+  const votesField = document.getElementById("votes");
+  
+  if (codeField) codeField.value = coop.code;
+  if (votesField) votesField.value = coop.votes;
+}
+
+function actualizarTitulosConLimites() {
+  if (!state.cooperativaSeleccionada) return;
+  
+  const coop = state.cooperativaSeleccionada;
+  
+  // Actualizar títulos de las secciones con los límites
+  const titularesTitle = document.querySelector("#titulares-section h2");
+  const suplentesTitle = document.querySelector("#suplentes-section h2");
+  
+  if (titularesTitle) {
+    titularesTitle.textContent = `Titulares (máximo ${coop.votes})`;
+  }
+  
+  if (suplentesTitle) {
+    suplentesTitle.textContent = `Suplentes (máximo ${coop.substitutes})`;
+  }
+}
+
+function cerrarSesion() {
+  console.log('🔄 Cerrando sesión...');
+  
+  // Limpiar estado de autenticación
+  state.usuarioAutenticado = false;
+  state.cooperativaSeleccionada = null;
+  state.titulares = [];
+  state.suplentes = [];
+  state.cartasPoder = [];
+  
+  // Limpiar campos del formulario de login
+  const codigoCooperativa = document.getElementById('codigo-cooperativa');
+  const codigoVerificador = document.getElementById('codigo-verificador');
+  
+  if (codigoCooperativa) codigoCooperativa.value = '';
+  if (codigoVerificador) codigoVerificador.value = '';
+  
+  // Ocultar error de login
+  const errorElement = document.getElementById('login-error');
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+  
+  // Cambiar de pantalla: ocultar registro y mostrar credenciales
+  const credencialesScreen = document.getElementById('credenciales-screen');
+  const registroScreen = document.getElementById('registro-screen');
+  
+  if (credencialesScreen && registroScreen) {
+    credencialesScreen.style.display = 'block';
+    registroScreen.style.display = 'none';
+    console.log('✅ Sesión cerrada, volviendo a pantalla de login');
+  } else {
+    console.error('❌ No se encontraron las pantallas para cerrar sesión');
+  }
+}
+
 // Funciones de navegación entre pantallas
 function mostrarRegistro() {
+  // Verificar que el usuario esté autenticado
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    alert('Debe iniciar sesión con los códigos de su cooperativa antes de continuar');
+    return;
+  }
+  
   document.getElementById("credenciales-screen").style.display = "none";
   document.getElementById("registro-screen").style.display = "block";
 }
@@ -26,59 +327,150 @@ function mostrarRegistro() {
 function volverCredenciales() {
   document.getElementById("registro-screen").style.display = "none";
   document.getElementById("credenciales-screen").style.display = "block";
+  
+  // Limpiar formularios cuando volvemos
+  clearCooperativeData();
 }
 
+// NOTA: Las siguientes funciones de carga de CSV ya no son necesarias
+// porque ahora la autenticación se hace contra un endpoint
+// Se mantienen comentadas por si se necesitan como referencia
+
+/*
 // Cargar los datos de las cooperativas desde el CSV
 async function loadCooperatives() {
   try {
-    const response = await fetch("data/cooperatives_con_car.csv");
+    console.log('🔄 Intentando cargar CSV...');
+    const response = await fetch("data/cooperatives_con_car_codigos.csv");
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const csvText = await response.text();
+    console.log('✅ CSV cargado, tamaño:', csvText.length, 'caracteres');
+    console.log('🔍 Primeros 200 caracteres:', csvText.substring(0, 200));
+    
     state.cooperativas = parseCSV(csvText);
-    populateCarSelect(state.cooperativas);
+    console.log("Cooperativas cargadas:", state.cooperativas.length);
+    console.log("Primera cooperativa:", state.cooperativas[0]);
+    
+    // Debug: mostrar todos los códigos disponibles
+    console.log("Códigos disponibles:", state.cooperativas.map(c => c.code).slice(0, 10));
+    
+    // Debug: buscar cooperativa 9 de diferentes formas
+    console.log("Cooperativa 9 (string):", state.cooperativas.find(c => c.code === "9"));
+    console.log("Cooperativa 9 (number):", state.cooperativas.find(c => c.code === 9));
+    console.log("Cooperativa 9 (parseInt):", state.cooperativas.find(c => parseInt(c.code) === 9));
+    
+    // Debug: mostrar cooperativas que empiecen con 9
+    console.log("Cooperativas con código que incluye 9:", state.cooperativas.filter(c => c.code?.toString().includes('9')).slice(0, 3));
   } catch (error) {
+    console.error('❌ Error cargando CSV:', error);
     showError("Error al cargar las cooperativas: " + error.message);
   }
 }
 
 // Función para parsear el CSV
 function parseCSV(csv) {
-  const lines = csv.split("\n");
-  const headers = lines[0].split(",").map((h) => h.trim());
-
-  return lines
-    .slice(1)
-    .filter((line) => line.trim())
-    .map((line) => {
-      // Manejar comillas en el CSV
-      const values = [];
-      let current = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          values.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
+  console.log('🔍 Parseando CSV...');
+  console.log('📊 CSV recibido (primeras 200 chars):', csv.substring(0, 200));
+  console.log('📏 Longitud total del CSV:', csv.length);
+  
+  if (!csv || csv.length === 0) {
+    console.error('❌ CSV vacío o undefined');
+    return [];
+  }
+  
+  const lines = csv.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  console.log('📝 Líneas válidas encontradas:', lines.length);
+  console.log('📋 Primera línea (header):', lines[0]);
+  console.log('📋 Segunda línea (primera coop):', lines[1]);
+  
+  if (lines.length < 2) {
+    console.error('❌ CSV sin datos válidos');
+    return [];
+  }
+  
+  const cooperativas = [];
+  
+  // Procesar desde línea 1 (saltar header)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    
+    try {
+      // Parser específico para el formato: "campo1,campo2,campo3,campo4,campo5,campo6,campo7;campo8"
+      let values = [];
+      
+      // Primero separar por punto y coma para obtener el código verificador
+      const parts = line.split(';');
+      if (parts.length === 2) {
+        // Los primeros 7 campos separados por coma
+        const firstSevenFields = parts[0].split(',');
+        // El último campo (código verificador)
+        const codigoVerificador = parts[1].trim().replace(/^"|"$/g, '');
+        
+        // Combinar todos los campos
+        values = [...firstSevenFields.map(v => v.trim().replace(/^"|"$/g, '')), codigoVerificador];
+      } else {
+        // Fallback: si no hay punto y coma, intentar parsing normal
+        values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
       }
+      
+      if (values.length >= 8) {
+        const cooperativa = {
+          code: values[0],
+          cuit: values[1],
+          name: values[2],
+          votes: parseInt(values[3]) || 0,
+          substitutes: parseInt(values[4]) || 0,
+          CAR: values[5],
+          'CAR Nombre': values[6],
+          codigo_verificador: values[7]
+        };
+        
+        cooperativas.push(cooperativa);
+        
+        if (cooperativa.code === '9') {
+          console.log('🎯 ENCONTRADA Cooperativa 9:', cooperativa);
+        }
+        
+        // Solo mostrar las primeras 3 para no saturar el log
+        if (i <= 3) {
+          console.log(`✅ Cooperativa ${i} cargada:`, cooperativa);
+        }
+      } else {
+        console.log(`⚠️ Línea ${i} formato incorrecto (${values.length} campos):`, values);
+      }
+    } catch (error) {
+      console.error(`❌ Error línea ${i}:`, error, line);
+    }
+  }
+  
+  console.log(`🎉 Total cooperativas parseadas: ${cooperativas.length}`);
+  return cooperativas;
+}
+*/
+
+// Función auxiliar para parsing normal
+function parseLineNormal(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
       values.push(current.trim());
-
-      const cooperative = {};
-      headers.forEach((header, index) => {
-        cooperative[header] = values[index] || "";
-      });
-
-      // Convertir votes y substitutes a números
-      cooperative.votes = parseInt(cooperative.votes) || 0;
-      cooperative.substitutes = parseInt(cooperative.substitutes) || 0;
-      cooperative.CAR = parseInt(cooperative.CAR) || 0;
-
-      return cooperative;
-    });
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+  return values;
 }
 
 // Poblar el select con los CARs
@@ -295,12 +687,22 @@ function createCartaPoderCard(id) {
 
 // Funciones de gestión de titulares
 function addTitular() {
+  console.log('🔄 Intentando agregar titular...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    titularesActuales: state.titulares.length,
+    maxTitulares: state.maxTitulares,
+    usuarioAutenticado: state.usuarioAutenticado
+  });
+  
   if (!state.cooperativaSeleccionada) {
+    console.error('❌ No hay cooperativa seleccionada');
     showError("Debe seleccionar una cooperativa antes de agregar titulares");
     return;
   }
 
   if (state.titulares.length >= state.maxTitulares) {
+    console.error('❌ Límite de titulares alcanzado');
     showError(
       `No se pueden agregar más titulares. Máximo permitido según votos de la cooperativa: ${state.maxTitulares}`
     );
@@ -309,8 +711,18 @@ function addTitular() {
 
   const id = createUniqueId();
   state.titulares.push({ id });
+  console.log('✅ Titular agregado con ID:', id);
+  
   const card = createTitularCard(id);
-  document.getElementById("titulares-container").appendChild(card);
+  const container = document.getElementById("titulares-container");
+  
+  if (container) {
+    container.appendChild(card);
+    console.log('✅ Card agregada al contenedor');
+  } else {
+    console.error('❌ No se encontró el contenedor de titulares');
+  }
+  
   updateCartaPoderSelects();
   updateButtonStates();
 }
@@ -324,12 +736,22 @@ function removeTitular(id) {
 
 // Funciones de gestión de suplentes
 function addSuplente() {
+  console.log('🔄 Intentando agregar suplente...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    suplentesActuales: state.suplentes.length,
+    maxSuplentes: state.maxSuplentes,
+    usuarioAutenticado: state.usuarioAutenticado
+  });
+  
   if (!state.cooperativaSeleccionada) {
+    console.error('❌ No hay cooperativa seleccionada');
     showError("Debe seleccionar una cooperativa antes de agregar suplentes");
     return;
   }
 
   if (state.suplentes.length >= state.maxSuplentes) {
+    console.error('❌ Límite de suplentes alcanzado');
     showError(
       `No se pueden agregar más suplentes. Máximo permitido según votos de la cooperativa: ${state.maxSuplentes}`
     );
@@ -338,8 +760,18 @@ function addSuplente() {
 
   const id = createUniqueId();
   state.suplentes.push({ id });
+  console.log('✅ Suplente agregado con ID:', id);
+  
   const card = createSuplenteCard(id);
-  document.getElementById("suplentes-container").appendChild(card);
+  const container = document.getElementById("suplentes-container");
+  
+  if (container) {
+    container.appendChild(card);
+    console.log('✅ Card agregada al contenedor');
+  } else {
+    console.error('❌ No se encontró el contenedor de suplentes');
+  }
+  
   updateButtonStates();
 }
 
@@ -454,16 +886,34 @@ function updateCartaPoderSelects() {
 
 // Función para actualizar el estado de los botones
 function updateButtonStates() {
+  console.log('🔄 Actualizando estados de botones...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    usuarioAutenticado: state.usuarioAutenticado,
+    titulares: state.titulares.length,
+    maxTitulares: state.maxTitulares,
+    suplentes: state.suplentes.length,
+    maxSuplentes: state.maxSuplentes
+  });
+  
   const addTitularBtn = document.getElementById("agregar-titular");
   const addSuplenteBtn = document.getElementById("agregar-suplente");
   const addCartaPoderBtn = document.getElementById("agregar-carta-poder");
 
+  console.log('🔍 Botones encontrados:', {
+    titular: !!addTitularBtn,
+    suplente: !!addSuplenteBtn,
+    cartaPoder: !!addCartaPoderBtn
+  });
+
   // Si los botones no existen (estamos en pantalla de credenciales), salir
   if (!addTitularBtn || !addSuplenteBtn || !addCartaPoderBtn) {
+    console.log('⚠️ Algunos botones no existen, saliendo de updateButtonStates');
     return;
   }
 
   if (!state.cooperativaSeleccionada) {
+    console.log('❌ Sin cooperativa seleccionada - deshabilitando botones');
     // Sin cooperativa seleccionada - botones deshabilitados y texto básico
     addTitularBtn.disabled = true;
     addTitularBtn.textContent = "Agregar Titular";
@@ -474,6 +924,7 @@ function updateButtonStates() {
     addCartaPoderBtn.disabled = true;
     addCartaPoderBtn.textContent = "Agregar Carta Poder";
   } else {
+    console.log('✅ Con cooperativa seleccionada - habilitando botones');
     // Con cooperativa seleccionada - mostrar contadores y límites
     addTitularBtn.disabled = state.titulares.length >= state.maxTitulares;
     addTitularBtn.textContent =
@@ -1091,14 +1542,33 @@ async function sendDataToEndpoint(data) {
 
     clearTimeout(timeoutId);
 
+    console.log("Status de la respuesta:", response.status);
+    console.log("Headers de la respuesta:", [...response.headers.entries()]);
+
     if (!response.ok) {
       throw new Error(
         `Error HTTP: ${response.status} - ${response.statusText}`
       );
     }
 
-    const result = await response.json();
-    console.log("Respuesta del servidor:", result);
+    // Obtener el texto de la respuesta primero
+    const responseText = await response.text();
+    console.log("Texto de la respuesta:", responseText);
+
+    // Intentar parsear como JSON solo si hay contenido
+    let result;
+    if (responseText.trim()) {
+      try {
+        result = JSON.parse(responseText);
+        console.log("Respuesta parseada como JSON:", result);
+      } catch (jsonError) {
+        console.log("La respuesta no es JSON válido, usando texto plano");
+        result = { message: responseText };
+      }
+    } else {
+      console.log("Respuesta vacía del servidor - asumiendo éxito");
+      result = { message: "Datos enviados correctamente" };
+    }
 
     return {
       success: true,
@@ -1113,10 +1583,15 @@ async function sendDataToEndpoint(data) {
           "La solicitud tardó demasiado tiempo. Verifique su conexión e intente nuevamente.",
       };
     }
-    console.error("Error al enviar datos:", error);
+    console.error("Error detallado al enviar datos:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return {
       success: false,
-      error: error.message,
+      error: `Error al conectar con el servidor: ${error.message}`,
     };
   }
 }
@@ -1477,15 +1952,57 @@ Reglas de cartas poder:
 }
 
 // Event Listeners
-document.addEventListener("DOMContentLoaded", () => {
-  // Event listener para el botón de continuar al registro
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log('🚀 DOM cargado, iniciando aplicación...');
+  
+  // NOTA: Ya no cargamos cooperativas desde CSV porque ahora usamos endpoint
+  // await loadCooperatives();
+
+  // Event listeners para el sistema de autenticación
+  const loginBtn = document.getElementById("btn-login");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", intentarLogin);
+  }
+
+  // Event listener para campos de login (Enter para submit)
+  const codigoCooperativaInput = document.getElementById("codigo-cooperativa");
+  const codigoVerificadorInput = document.getElementById("codigo-verificador");
+  
+  if (codigoCooperativaInput) {
+    codigoCooperativaInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        intentarLogin();
+      }
+    });
+  }
+  
+  if (codigoVerificadorInput) {
+    codigoVerificadorInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        intentarLogin();
+      }
+    });
+  }
+
+  // Event listener para continuar al formulario
+  const continuarFormularioBtn = document.getElementById("btn-continuar-formulario");
+  if (continuarFormularioBtn) {
+    continuarFormularioBtn.addEventListener("click", continuarAlFormulario);
+  }
+
+  // Event listener para cerrar sesión
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", cerrarSesion);
+  }
+
+  // Event listener para el botón de continuar al registro (legacy - ya no se usa)
   const continuarBtn = document.getElementById("continuar-registro");
   if (continuarBtn) {
     continuarBtn.addEventListener("click", mostrarRegistro);
   }
-
-  // Cargar cooperativas
-  loadCooperatives();
 
   // Eventos de botones principales - solo si existen
   const agregarTitularBtn = document.getElementById("agregar-titular");
@@ -1504,13 +2021,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // El botón guardar ahora usa onclick en el HTML
 
-  // Evento de cambio de CAR - solo si existe
+  // Evento de cambio de CAR - solo si existe (legacy - ya no se usa)
   const carSelect = document.getElementById("car-select");
   if (carSelect) {
     carSelect.addEventListener("change", filterCooperativesByCAR);
   }
 
-  // Evento de cambio de cooperativa - solo si existe
+  // Evento de cambio de cooperativa - solo si existe (legacy - ya no se usa)
   const cooperativeSelect = document.getElementById("cooperative");
   if (cooperativeSelect) {
     cooperativeSelect.addEventListener("change", handleCooperativeChange);
