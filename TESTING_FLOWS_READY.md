@@ -39,10 +39,16 @@ Title eq '@{triggerBody()['cooperativa']['codigo']}'
 ```
 CAMBIAR DE:
 "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Numero_x0020_de_x0020_coop']}"
+"votes": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']}"
+"substitutes": "@{div(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'], 3)}"
 
 CAMBIAR A:
 "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}"
+"votes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}"
+"substitutes": "@{div(int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']), 3)}"
 ```
+
+**🚨 ERROR CRÍTICO**: La función `div()` falla porque SharePoint devuelve números como strings. ¡Usar `int()` para convertir!
 
 ---
 

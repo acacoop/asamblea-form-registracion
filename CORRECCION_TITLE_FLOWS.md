@@ -26,13 +26,22 @@ Title eq '@{triggerBody()['codigo_cooperativa']}' and CodVerificador eq '@{trigg
 
 **❌ ACTUAL (Incorrecto):**
 ```json
-"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Numero_x0020_de_x0020_coop']}"
+"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Numero_x0020_de_x0020_coop']}",
+"votes": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']}",
+"substitutes": "@{div(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'], 3)}"
 ```
 
 **✅ CORRECTO:**
 ```json
-"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}"
+"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}",
+"votes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}",
+"substitutes": "@{div(int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']), 3)}"
 ```
+
+**🔧 Explicación del error `div()`:**
+- SharePoint devuelve `Total_x0020_votos` como string
+- La función `div()` requiere números enteros
+- Solución: usar `int()` para convertir antes de dividir
 
 ---
 

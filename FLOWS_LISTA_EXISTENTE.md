@@ -52,8 +52,8 @@ length(body('Get_items')?['value']) is greater than 0
         "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}",
         "cuit": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CUIT']}",
         "name": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Nombre_x0020_completo']}",
-        "votes": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']}",
-        "substitutes": "@{div(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'], 3)}",
+        "votes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}",
+        "substitutes": "@{div(int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']), 3)}",
         "CAR": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CAR']}",
         "CAR Nombre": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CAR_x0020_Nombre']}",
         "codigo_verificador": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CodVerificador']}"
