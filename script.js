@@ -68,6 +68,9 @@ async function intentarLogin() {
         // Mostrar información de cooperativa
         mostrarInformacionCooperativa(cooperativa);
         
+        // Consultar automáticamente datos existentes y precargar formulario
+        await consultarYPrecargarDatos();
+        
         // Actualizar estados de botones después del login
         updateButtonStates();
       } else {
@@ -334,8 +337,19 @@ function precargarDatosEnFormulario(datos) {
     }
     
     // Precargar titulares
-    if (datos.titulares && Array.isArray(datos.titulares)) {
-      datos.titulares.forEach((titular, index) => {
+    let titularesArray = datos.titulares;
+    if (typeof datos.titulares === 'string') {
+      try {
+        titularesArray = JSON.parse(datos.titulares);
+        console.log('📋 Titulares parseados desde string JSON:', titularesArray);
+      } catch (error) {
+        console.error('❌ Error al parsear titulares JSON:', error);
+        titularesArray = [];
+      }
+    }
+    
+    if (titularesArray && Array.isArray(titularesArray)) {
+      titularesArray.forEach((titular, index) => {
         addTitular();
         const titularCard = document.querySelector(`[data-id="${state.titulares[index].id}"]`);
         if (titularCard) {
@@ -346,12 +360,25 @@ function precargarDatosEnFormulario(datos) {
           if (documentoInput) documentoInput.value = titular.documento || '';
         }
       });
-      console.log('✅ Titulares precargados:', datos.titulares.length);
+      console.log('✅ Titulares precargados:', titularesArray.length);
+      console.log('🔍 IDs de titulares actuales en state:', state.titulares.map(t => ({ id: t.id, state: 'nuevo' })));
+      console.log('🔍 IDs de titulares desde datos:', titularesArray.map(t => ({ id: t.id, source: 'datos' })));
     }
     
     // Precargar suplentes
-    if (datos.suplentes && Array.isArray(datos.suplentes)) {
-      datos.suplentes.forEach((suplente, index) => {
+    let suplentesArray = datos.suplentes;
+    if (typeof datos.suplentes === 'string') {
+      try {
+        suplentesArray = JSON.parse(datos.suplentes);
+        console.log('📋 Suplentes parseados desde string JSON:', suplentesArray);
+      } catch (error) {
+        console.error('❌ Error al parsear suplentes JSON:', error);
+        suplentesArray = [];
+      }
+    }
+    
+    if (suplentesArray && Array.isArray(suplentesArray)) {
+      suplentesArray.forEach((suplente, index) => {
         addSuplente();
         const suplenteCard = document.querySelector(`[data-id="${state.suplentes[index].id}"]`);
         if (suplenteCard) {
@@ -362,26 +389,218 @@ function precargarDatosEnFormulario(datos) {
           if (documentoInput) documentoInput.value = suplente.documento || '';
         }
       });
-      console.log('✅ Suplentes precargados:', datos.suplentes.length);
+      console.log('✅ Suplentes precargados:', suplentesArray.length);
     }
     
     // Precargar cartas poder
-    if (datos.cartasPoder && Array.isArray(datos.cartasPoder)) {
-      datos.cartasPoder.forEach((carta, index) => {
-        addCartaPoder();
-        const cartaCard = document.querySelector(`[data-id="${state.cartasPoder[index].id}"]`);
-        if (cartaCard) {
-          const desdeSelect = cartaCard.querySelector(`select[id^="desde-"]`);
-          const haciaSelect = cartaCard.querySelector(`select[id^="hacia-"]`);
-          
-          // Necesitamos esperar a que los selects se actualicen
-          setTimeout(() => {
-            if (desdeSelect) desdeSelect.value = carta.desde || '';
-            if (haciaSelect) haciaSelect.value = carta.hacia || '';
-          }, 100);
-        }
+    let cartasPoderArray = datos.cartasPoder;
+    if (typeof datos.cartasPoder === 'string') {
+      try {
+        cartasPoderArray = JSON.parse(datos.cartasPoder);
+        console.log('📋 Cartas poder parseadas desde string JSON:', cartasPoderArray);
+      } catch (error) {
+        console.error('❌ Error al parsear cartas poder JSON:', error);
+        cartasPoderArray = [];
+      }
+    }
+    
+    console.log('🔍 Debug cartas poder:', {
+      original: datos.cartasPoder,
+      parseado: cartasPoderArray,
+      esArray: Array.isArray(cartasPoderArray),
+      longitud: cartasPoderArray?.length
+    });
+    
+    if (cartasPoderArray && Array.isArray(cartasPoderArray)) {
+      // Verificar si los datos tienen la estructura nueva (poderdante/apoderado) o antigua (desde/hacia)
+      const tienenEstructuraNueva = cartasPoderArray.every(carta => 
+        carta.hasOwnProperty('poderdante') && carta.hasOwnProperty('apoderado')
+      );
+      const tienenEstructuraAntigua = cartasPoderArray.every(carta => 
+        carta.hasOwnProperty('desde') && carta.hasOwnProperty('hacia')
+      );
+      
+      console.log('🔍 Estructura de cartas poder:', {
+        nueva: tienenEstructuraNueva,
+        antigua: tienenEstructuraAntigua
       });
-      console.log('✅ Cartas poder precargadas:', datos.cartasPoder.length);
+      
+      if (tienenEstructuraNueva || tienenEstructuraAntigua) {
+        // Verificar si ya hay cartas poder en el DOM
+        const cartasExistentes = document.querySelectorAll('#cartas-poder-container .card').length;
+        console.log(`🔍 Cartas poder existentes en DOM: ${cartasExistentes}`);
+        console.log(`🔍 Cartas poder a procesar: ${cartasPoderArray.length}`);
+        
+        // Solo agregar cartas si no existen ya
+        const cartasAgregar = Math.max(0, cartasPoderArray.length - cartasExistentes);
+        console.log(`🔧 Cartas poder a agregar: ${cartasAgregar}`);
+        
+        // Agregar las cartas faltantes
+        for (let i = 0; i < cartasAgregar; i++) {
+          console.log(`🔧 Agregando carta poder ${cartasExistentes + i}...`);
+          addCartaPoder();
+        }
+        
+        cartasPoderArray.forEach((carta, index) => {
+          console.log(`🔍 Procesando carta ${index}:`, carta);
+          
+          // Buscar la card por índice en lugar de por ID guardado
+          const cartasCards = document.querySelectorAll('#cartas-poder-container .card');
+          const cartaCard = cartasCards[index];
+          console.log(`🔍 Carta card encontrada por índice ${index}:`, cartaCard);
+          
+          if (cartaCard) {
+            const desdeSelect = cartaCard.querySelector(`select[id^="desde-"]`);
+            const haciaSelect = cartaCard.querySelector(`select[id^="hacia-"]`);
+            
+            console.log(`🔍 Selects encontrados para carta ${index}:`, {
+              cartaCard: !!cartaCard,
+              cardId: cartaCard.getAttribute('data-id'),
+              desdeSelect: !!desdeSelect,
+              haciaSelect: !!haciaSelect,
+              desdeId: desdeSelect?.id,
+              haciaId: haciaSelect?.id,
+              innerHTML: cartaCard.innerHTML.substring(0, 200) + '...'
+            });
+            
+            // Aumentar delay para asegurar que los selects estén poblados
+            setTimeout(() => {
+              // Actualizar opciones primero solo si hay cartas poder en el DOM
+              console.log('🔧 Actualizando opciones de cartas poder...');
+              const cartasPoderEnDOM = document.querySelectorAll('#cartas-poder-container .card').length;
+              console.log(`🔍 Cartas poder en DOM: ${cartasPoderEnDOM}`);
+              
+              if (cartasPoderEnDOM > 0) {
+                updateCartaPoderSelects();
+              } else {
+                console.log('⚠️ No hay cartas poder en DOM para actualizar');
+              }
+              
+              // Verificar que las opciones se cargaron
+              setTimeout(() => {
+                // Validar que los selects existen antes de acceder a sus propiedades
+                if (!desdeSelect || !haciaSelect) {
+                  console.log(`❌ Error: Selects no encontrados`, {
+                    desdeSelect: !!desdeSelect,
+                    haciaSelect: !!haciaSelect
+                  });
+                  return;
+                }
+                
+                const desdeOptions = Array.from(desdeSelect.options);
+                const haciaOptions = Array.from(haciaSelect.options);
+                
+                console.log(`🔍 Opciones disponibles:`, {
+                  desdeOptions: desdeOptions.length,
+                  haciaOptions: haciaOptions.length,
+                  desdeOptionsText: desdeOptions.map(opt => `${opt.value}:${opt.text}`),
+                  haciaOptionsText: haciaOptions.map(opt => `${opt.value}:${opt.text}`)
+                });
+                
+                // Buscar por nombre y documento en lugar de ID guardado
+                if (tienenEstructuraNueva) {
+                  const poderdanteNombre = carta.poderdante?.nombre;
+                  const poderdanteDoc = carta.poderdante?.documento;
+                  const apoderadoNombre = carta.apoderado?.nombre;
+                  const apoderadoDoc = carta.apoderado?.documento;
+                  
+                  console.log(`� Buscando por datos:`, {
+                    poderdante: { nombre: poderdanteNombre, documento: poderdanteDoc },
+                    apoderado: { nombre: apoderadoNombre, documento: apoderadoDoc }
+                  });
+                  
+                  console.log(`🔍 Buscando por datos:`, {
+                    poderdante: { nombre: poderdanteNombre, documento: poderdanteDoc },
+                    apoderado: { nombre: apoderadoNombre, documento: apoderadoDoc }
+                  });
+                  
+                  // Mostrar todas las opciones disponibles para diagnóstico
+                  console.log(`🔍 Opciones desde disponibles:`, desdeOptions.map(opt => opt.text));
+                  console.log(`🔍 Opciones hacia disponibles:`, haciaOptions.map(opt => opt.text));
+                  
+                  // Buscar opciones que contengan el nombre y documento
+                  const desdeOption = desdeOptions.find(opt => {
+                    const includeNombre = opt.text.includes(poderdanteNombre);
+                    const includeDoc = opt.text.includes(poderdanteDoc);
+                    console.log(`🔍 Verificando opción desde "${opt.text}":`, {
+                      includeNombre,
+                      includeDoc,
+                      coincide: includeNombre && includeDoc
+                    });
+                    return includeNombre && includeDoc;
+                  });
+                  
+                  const haciaOption = haciaOptions.find(opt => {
+                    const includeNombre = opt.text.includes(apoderadoNombre);
+                    const includeDoc = opt.text.includes(apoderadoDoc);
+                    console.log(`🔍 Verificando opción hacia "${opt.text}":`, {
+                      includeNombre,
+                      includeDoc,
+                      coincide: includeNombre && includeDoc
+                    });
+                    return includeNombre && includeDoc;
+                  });
+                  
+                  console.log(`🔍 Opciones encontradas:`, {
+                    desdeOption: desdeOption ? { value: desdeOption.value, text: desdeOption.text } : null,
+                    haciaOption: haciaOption ? { value: haciaOption.value, text: haciaOption.text } : null
+                  });
+                  
+                  if (desdeOption && desdeSelect) {
+                    desdeSelect.value = desdeOption.value;
+                    console.log(`✅ Valor desde asignado:`, desdeOption.value);
+                  }
+                  
+                  if (haciaOption && haciaSelect) {
+                    haciaSelect.value = haciaOption.value;
+                    console.log(`✅ Valor hacia asignado:`, haciaOption.value);
+                  }
+                } else {
+                  // Estructura antigua: usar desde/hacia directamente
+                  const desdeValue = carta.desde || '';
+                  const haciaValue = carta.hacia || '';
+                  
+                  console.log(`🔍 Intentando asignar valores (estructura antigua):`, {
+                    desde: desdeValue,
+                    hacia: haciaValue
+                  });
+                  
+                  if (desdeSelect) {
+                    desdeSelect.value = desdeValue;
+                    console.log(`🔍 Resultado desde:`, {
+                      valorAsignado: desdeValue,
+                      valorActual: desdeSelect.value,
+                      seAsignoCorrectamente: desdeSelect.value === desdeValue
+                    });
+                  }
+                  
+                  if (haciaSelect) {
+                    haciaSelect.value = haciaValue;
+                    console.log(`🔍 Resultado hacia:`, {
+                      valorAsignado: haciaValue,
+                      valorActual: haciaSelect.value,
+                      seAsignoCorrectamente: haciaSelect.value === haciaValue
+                    });
+                  }
+                }
+                
+                // Verificación final después de un momento
+                setTimeout(() => {
+                  console.log(`🔍 Verificación final carta ${index}:`, {
+                    desde: desdeSelect?.value || 'no asignado',
+                    hacia: haciaSelect?.value || 'no asignado'
+                  });
+                }, 200);
+                
+              }, 500); // Delay adicional después de actualizar opciones
+            }, 1000); // Aumentado de 500ms a 1000ms
+          }
+        });
+        console.log('✅ Cartas poder precargadas:', cartasPoderArray.length);
+      } else {
+        console.log('⚠️ Los datos de cartas poder no tienen estructura reconocida');
+        console.log('💡 Se omite la precarga de cartas poder - estructura de datos no compatible');
+      }
     }
     
     // Mostrar indicador de edición
@@ -414,6 +633,39 @@ function mostrarIndicadorEdicion() {
     
     // Insertar al principio de la sección
     autoridadesSection.insertBefore(indicador, autoridadesSection.firstChild);
+  }
+}
+
+// Función para consultar y precargar datos automáticamente después de la autenticación
+async function consultarYPrecargarDatos() {
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    console.error('❌ Error: No hay una sesión válida para consultar datos');
+    return;
+  }
+  
+  // Actualizar la información de la cooperativa en el formulario de registro
+  actualizarDatosCooperativaEnFormulario();
+  
+  // Actualizar títulos con información de la cooperativa
+  actualizarTitulosConLimites();
+  
+  // Consultar si hay datos existentes y precargarlos
+  try {
+    console.log('🔍 Consultando datos existentes automáticamente...');
+    const datosExistentes = await consultarDatosExistentes(state.cooperativaSeleccionada.code);
+    
+    if (datosExistentes) {
+      console.log('📋 Precargando datos existentes automáticamente...');
+      precargarDatosEnFormulario(datosExistentes);
+      
+      // Mostrar indicador de que se están editando datos existentes
+      mostrarIndicadorEdicion();
+    } else {
+      console.log('ℹ️ No hay datos previos, formulario en blanco');
+    }
+  } catch (error) {
+    console.error('❌ Error al consultar datos existentes:', error);
+    // No es crítico, continuar con formulario vacío
   }
 }
 
@@ -1014,19 +1266,24 @@ function removeCartaPoder(id) {
 function updateCartaPoderSelects() {
   const titulares = Array.from(
     document.querySelectorAll("#titulares-container .card")
-  ).map((card) => ({
-    id: card.dataset.id,
-    nombre: card.querySelector('input[id^="nombre-"]').value,
-  }));
+  ).map((card) => {
+    const nombreInput = card.querySelector('input[id^="nombre-"]');
+    const documentoInput = card.querySelector('input[id^="documento-"]');
+    return {
+      id: card.dataset.id,
+      nombre: nombreInput ? nombreInput.value : '',
+      documento: documentoInput ? documentoInput.value : '',
+    };
+  });
 
   // Obtener lista de poderdantes (quienes ya delegaron su voto)
   const poderdantes = new Set();
   state.cartasPoder.forEach((cpOther) => {
     const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
     if (otherCard) {
-      const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
-      if (desde) {
-        poderdantes.add(desde);
+      const desdeSelect = otherCard.querySelector(`select[id^="desde-"]`);
+      if (desdeSelect && desdeSelect.value) {
+        poderdantes.add(desdeSelect.value);
       }
     }
   });
@@ -1037,6 +1294,12 @@ function updateCartaPoderSelects() {
 
     const desdeSelect = card.querySelector(`select[id^="desde-"]`);
     const haciaSelect = card.querySelector(`select[id^="hacia-"]`);
+    
+    // Validar que los selects existen
+    if (!desdeSelect || !haciaSelect) {
+      console.log(`❌ Selects no encontrados para carta ${cp.id}`);
+      return;
+    }
 
     const currentDesde = desdeSelect.value;
     const currentHacia = haciaSelect.value;
@@ -1048,9 +1311,9 @@ function updateCartaPoderSelects() {
         // Excluir la carta actual
         const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
         if (otherCard) {
-          const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
-          if (desde) {
-            otrosPoderdantes.add(desde);
+          const otherDesdeSelect = otherCard.querySelector(`select[id^="desde-"]`);
+          if (otherDesdeSelect && otherDesdeSelect.value) {
+            otrosPoderdantes.add(otherDesdeSelect.value);
           }
         }
       }
@@ -1062,12 +1325,14 @@ function updateCartaPoderSelects() {
     titulares.forEach((t) => {
       // Solo los titulares que NO son poderdantes en OTRAS cartas pueden ser poderdantes
       if (!otrosPoderdantes.has(t.id)) {
-        desdeSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
+        const textoOpcion = t.nombre ? `${t.nombre} (${t.documento || 'Sin documento'})` : `Titular ${t.id}`;
+        desdeSelect.add(new Option(textoOpcion, t.id));
       }
 
       // Solo los titulares que NO son poderdantes en NINGUNA carta pueden ser apoderados
       if (!poderdantes.has(t.id)) {
-        haciaSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
+        const textoOpcion = t.nombre ? `${t.nombre} (${t.documento || 'Sin documento'})` : `Titular ${t.id}`;
+        haciaSelect.add(new Option(textoOpcion, t.id));
       }
     });
 
@@ -2033,9 +2298,20 @@ function generateResumen() {
     }),
     delegaciones: state.cartasPoder.map((cp) => {
       const card = document.querySelector(`[data-id="${cp.id}"]`);
+      const desdeValue = card.querySelector(`select[id^="desde-"]`).value;
+      const haciaValue = card.querySelector(`select[id^="hacia-"]`).value;
+      
+      console.log(`🔍 Recopilando carta poder ${cp.id}:`, {
+        card: card,
+        desdeSelect: card.querySelector(`select[id^="desde-"]`),
+        haciaSelect: card.querySelector(`select[id^="hacia-"]`),
+        desdeValue: desdeValue,
+        haciaValue: haciaValue
+      });
+      
       return {
-        desde: card.querySelector(`select[id^="desde-"]`).value,
-        hacia: card.querySelector(`select[id^="hacia-"]`).value,
+        desde: desdeValue,
+        hacia: haciaValue,
       };
     }),
   };
@@ -2060,6 +2336,15 @@ function generateResumen() {
     if (titular) {
       titular.votosRepresentados.push(d.desde);
     }
+  });
+
+  // Debug: Mostrar estructura final del resumen
+  console.log('🔍 Resumen generado completo:', {
+    cooperativa: resumen.cooperativa?.name,
+    titulares: resumen.titulares.length,
+    suplentes: resumen.suplentes.length,
+    delegaciones: resumen.delegaciones.length,
+    estructuraDelegaciones: resumen.delegaciones
   });
 
   return resumen;
