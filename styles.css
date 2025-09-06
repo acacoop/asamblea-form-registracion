@@ -789,6 +789,41 @@ section {
   width: 100%;
 }
 
+/* Estilos para el indicador de edición */
+.edit-indicator {
+  margin-bottom: 20px;
+}
+
+.edit-notice {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-shadow: 0 2px 10px rgba(255, 193, 7, 0.1);
+}
+
+.edit-icon {
+  font-size: 1.2em;
+  margin-top: 2px;
+}
+
+.edit-notice strong {
+  color: #856404;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.edit-notice p {
+  color: #856404;
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
 /* Indicadores de estado */
 .status-indicator {
   display: inline-block;

@@ -17,6 +17,8 @@ const config = {
   apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/de424a7251e74d6e861544b4c6c41352/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=si_BRNHv_4rn9mFJysIEFomXlAtPaqOUq-D-jWl74Og",
   // Endpoint de Power Automate para autenticación de cooperativas
   authEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d4951cc773a048c9964ef65dfdd3c69c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=tG24Qxrd_AUtjKiQR8D1lt2yvbOtZZNBtkYEXn9_aZI",
+  // Endpoint de Power Automate para consultar datos existentes (REEMPLAZAR CON TU ENDPOINT)
+  consultarDatosEndpoint: "https://tu-dominio.com/api/consultar-registro",
   timeout: 30000, // 30 segundos
 };
 
@@ -228,7 +230,188 @@ function mostrarInformacionCooperativa(cooperativa) {
   state.cartasPoder = [];
 }
 
-function continuarAlFormulario() {
+// Nueva función para consultar datos existentes
+async function consultarDatosExistentes(codigoCooperativa) {
+  try {
+    console.log('🔍 Consultando datos existentes para cooperativa:', codigoCooperativa);
+    
+    const response = await fetch(config.consultarDatosEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        codigo_cooperativa: codigoCooperativa
+      })
+    });
+    
+    console.log('🌐 Respuesta de consulta de datos:', {
+      status: response.status,
+      statusText: response.statusText
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        // No hay datos previos, es normal
+        console.log('ℹ️ No se encontraron datos previos para esta cooperativa');
+        return null;
+      } else {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const responseText = await response.text();
+    console.log('📝 Contenido de respuesta consulta:', responseText);
+    
+    if (!responseText.trim()) {
+      console.log('ℹ️ Respuesta vacía - no hay datos previos');
+      return null;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Error al parsear JSON de consulta:', parseError);
+      throw new Error('Respuesta del servidor no válida');
+    }
+    
+    // Verificar que la respuesta tenga la estructura esperada
+    if (data && data.success === true && data.datos) {
+      console.log('✅ Datos existentes encontrados:', data.datos);
+      return data.datos;
+    } else if (data && data.success === false) {
+      // No hay datos previos
+      console.log('ℹ️ No hay datos previos guardados');
+      return null;
+    } else {
+      console.error('❌ Estructura de respuesta inesperada:', data);
+      return null;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en consultarDatosExistentes:', error);
+    // No es un error crítico, simplemente no hay datos previos
+    return null;
+  }
+}
+
+// Función para precargar datos existentes en el formulario
+function precargarDatosEnFormulario(datos) {
+  console.log('📋 Precargando datos en formulario:', datos);
+  
+  try {
+    // Precargar autoridades
+    if (datos.autoridades) {
+      const secretarioInput = document.getElementById('secretario');
+      const presidenteInput = document.getElementById('presidente');
+      
+      if (secretarioInput && datos.autoridades.secretario) {
+        secretarioInput.value = datos.autoridades.secretario;
+        console.log('✅ Secretario precargado:', datos.autoridades.secretario);
+      }
+      
+      if (presidenteInput && datos.autoridades.presidente) {
+        presidenteInput.value = datos.autoridades.presidente;
+        console.log('✅ Presidente precargado:', datos.autoridades.presidente);
+      }
+    }
+    
+    // Precargar correo
+    if (datos.contacto && datos.contacto.correoElectronico) {
+      const correoInput = document.getElementById('correo-electronico');
+      if (correoInput) {
+        correoInput.value = datos.contacto.correoElectronico;
+        console.log('✅ Correo precargado:', datos.contacto.correoElectronico);
+      }
+    }
+    
+    // Precargar titulares
+    if (datos.titulares && Array.isArray(datos.titulares)) {
+      datos.titulares.forEach((titular, index) => {
+        addTitular();
+        const titularCard = document.querySelector(`[data-id="${state.titulares[index].id}"]`);
+        if (titularCard) {
+          const nombreInput = titularCard.querySelector(`input[id^="nombre-"]`);
+          const documentoInput = titularCard.querySelector(`input[id^="documento-"]`);
+          
+          if (nombreInput) nombreInput.value = titular.nombre || '';
+          if (documentoInput) documentoInput.value = titular.documento || '';
+        }
+      });
+      console.log('✅ Titulares precargados:', datos.titulares.length);
+    }
+    
+    // Precargar suplentes
+    if (datos.suplentes && Array.isArray(datos.suplentes)) {
+      datos.suplentes.forEach((suplente, index) => {
+        addSuplente();
+        const suplenteCard = document.querySelector(`[data-id="${state.suplentes[index].id}"]`);
+        if (suplenteCard) {
+          const nombreInput = suplenteCard.querySelector(`input[id^="nombre-sup-"]`);
+          const documentoInput = suplenteCard.querySelector(`input[id^="documento-sup-"]`);
+          
+          if (nombreInput) nombreInput.value = suplente.nombre || '';
+          if (documentoInput) documentoInput.value = suplente.documento || '';
+        }
+      });
+      console.log('✅ Suplentes precargados:', datos.suplentes.length);
+    }
+    
+    // Precargar cartas poder
+    if (datos.cartasPoder && Array.isArray(datos.cartasPoder)) {
+      datos.cartasPoder.forEach((carta, index) => {
+        addCartaPoder();
+        const cartaCard = document.querySelector(`[data-id="${state.cartasPoder[index].id}"]`);
+        if (cartaCard) {
+          const desdeSelect = cartaCard.querySelector(`select[id^="desde-"]`);
+          const haciaSelect = cartaCard.querySelector(`select[id^="hacia-"]`);
+          
+          // Necesitamos esperar a que los selects se actualicen
+          setTimeout(() => {
+            if (desdeSelect) desdeSelect.value = carta.desde || '';
+            if (haciaSelect) haciaSelect.value = carta.hacia || '';
+          }, 100);
+        }
+      });
+      console.log('✅ Cartas poder precargadas:', datos.cartasPoder.length);
+    }
+    
+    // Mostrar indicador de edición
+    mostrarIndicadorEdicion();
+    
+    // Actualizar resumen
+    setTimeout(() => {
+      updateResumen();
+      updateButtonStates();
+    }, 200);
+    
+  } catch (error) {
+    console.error('❌ Error al precargar datos:', error);
+  }
+}
+
+// Función para mostrar indicador de que se están editando datos existentes
+function mostrarIndicadorEdicion() {
+  const autoridadesSection = document.getElementById('autoridades-section');
+  if (autoridadesSection) {
+    const indicador = document.createElement('div');
+    indicador.className = 'edit-indicator';
+    indicador.innerHTML = `
+      <div class="edit-notice">
+        <span class="edit-icon">✏️</span>
+        <strong>Editando registro existente</strong>
+        <p>Se han cargado los datos previamente guardados. Puede modificarlos y guardar nuevamente.</p>
+      </div>
+    `;
+    
+    // Insertar al principio de la sección
+    autoridadesSection.insertBefore(indicador, autoridadesSection.firstChild);
+  }
+}
+
+async function continuarAlFormulario() {
   if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
     mostrarErrorLogin('Error: No hay una sesión válida');
     return;
@@ -242,6 +425,22 @@ function continuarAlFormulario() {
   
   // Actualizar títulos con información de la cooperativa
   actualizarTitulosConLimites();
+  
+  // Consultar si hay datos existentes y precargarlos
+  try {
+    console.log('🔍 Consultando datos existentes...');
+    const datosExistentes = await consultarDatosExistentes(state.cooperativaSeleccionada.code);
+    
+    if (datosExistentes) {
+      console.log('📋 Precargando datos existentes...');
+      precargarDatosEnFormulario(datosExistentes);
+    } else {
+      console.log('ℹ️ No hay datos previos, formulario en blanco');
+    }
+  } catch (error) {
+    console.error('❌ Error al consultar datos existentes:', error);
+    // No es crítico, continuar con formulario vacío
+  }
 }
 
 function actualizarDatosCooperativaEnFormulario() {

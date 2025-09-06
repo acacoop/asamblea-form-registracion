@@ -1,7 +1,11 @@
-# Especificación del Endpoint de Autenticación
+# Especificación de Endpoints de la Aplicación
 
 ## Resumen
-El frontend ahora consulta un endpoint HTTP para autenticar las cooperativas en lugar de usar un archivo CSV local. Este documento especifica cómo debe funcionar el endpoint que necesitás implementar.
+El frontend utiliza dos endpoints HTTP principales:
+1. **Autenticación**: Para validar credenciales de cooperativas
+2. **Consulta de Datos**: Para recuperar registros previamente guardados y permitir edición
+
+Este documento especifica cómo deben funcionar ambos endpoints.
 
 ## Endpoint de Autenticación
 
@@ -89,19 +93,29 @@ El frontend ya está preparado para manejar los siguientes escenarios:
 - **JSON inválido**: Mensaje "Respuesta del servidor no válida"
 - **Otros errores**: Mensaje personalizado con detalles del error
 
-## Configuración
+## Configuración de URLs
 
-Para cambiar la URL del endpoint, modificá esta línea en `script.js`:
+Para configurar ambos endpoints, modificá estas líneas en `script.js`:
 
 ```javascript
 const config = {
   // Endpoint de Power Automate para envío de datos
   apiEndpoint: "...",
+  
   // Endpoint para autenticación de cooperativas (CAMBIAR ESTA URL)
   authEndpoint: "https://tu-dominio.com/api/auth/cooperativa",
+  
+  // Endpoint para consulta de datos existentes (CAMBIAR ESTA URL)  
+  consultarDatosEndpoint: "https://tu-dominio.com/api/consultar-registro",
+  
   timeout: 30000,
 };
 ```
+
+## Ver También
+
+- **[CONSULTA_DATOS_SPEC.md](./CONSULTA_DATOS_SPEC.md)**: Especificación detallada del endpoint de consulta de datos
+- **[API_CONFIG.md](./API_CONFIG.md)**: Configuración general de la API
 
 ## Seguridad
 
@@ -146,19 +160,29 @@ Ejemplo:
 123,30-12345678-9,Cooperativa Ejemplo,15,3,1,Región Norte;ABC123
 ```
 
-## Estado de la Implementación
+## Estado de la Implementación de Ambos Endpoints
 
-✅ **Completado en el Frontend:**
+### ✅ **Completado en el Frontend:**
+
+#### Autenticación:
 - Función `autenticarConEndpoint()` implementada
 - Manejo robusto de errores HTTP
 - Parsing seguro de respuestas JSON
 - Logging detallado para debugging
 - Interfaz de usuario responsiva durante autenticación
 
-🔄 **Pendiente de Implementación:**
-- Crear el endpoint en el backend
-- Configurar la URL correcta en `config.authEndpoint`
-- Testing con datos reales
+#### Consulta de Datos:
+- Función `consultarDatosExistentes()` implementada
+- Función `precargarDatosEnFormulario()` completa
+- Indicador visual de edición
+- Integración con flujo de autenticación
+- Manejo de errores robusto
+- Precarga de todos los tipos de datos
+
+### 🔄 **Pendiente de Implementación:**
+- Crear ambos endpoints en Power Automate/backend
+- Configurar las URLs correctas en `config.authEndpoint` y `config.consultarDatosEndpoint`
+- Testing con datos reales de ambos endpoints
 
 ## Notas Adicionales
 
