@@ -163,6 +163,64 @@
             </div>
           </section>
 
+          <!-- Sección de Autoridades y Contacto -->
+          <section id="autoridades-section">
+            <h2>Autoridades de la Cooperativa</h2>
+            <div class="autoridades-form">
+              <div class="form-row">
+                <div class="form-group form-group-large">
+                  <label class="form-label" for="secretario"
+                    >Nombre del Secretario:</label
+                  >
+                  <input 
+                    type="text" 
+                    id="secretario" 
+                    name="secretario" 
+                    pattern="[A-Za-zÀ-ÿ\s]+" 
+                    title="Solo se permiten letras y espacios"
+                    placeholder="Ingrese el nombre completo del secretario"
+                    required 
+                  />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group form-group-large">
+                  <label class="form-label" for="presidente"
+                    >Nombre del Presidente:</label
+                  >
+                  <input 
+                    type="text" 
+                    id="presidente" 
+                    name="presidente" 
+                    pattern="[A-Za-zÀ-ÿ\s]+" 
+                    title="Solo se permiten letras y espacios"
+                    placeholder="Ingrese el nombre completo del presidente"
+                    required 
+                  />
+                </div>
+              </div>
+              
+              <!-- Campo de correo electrónico -->
+              <div class="form-row">
+                <div class="form-group form-group-large">
+                  <label class="form-label" for="correo-electronico"
+                    >Correo Electrónico de Contacto:</label
+                  >
+                  <input 
+                    type="email" 
+                    id="correo-electronico" 
+                    name="correo-electronico" 
+                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" 
+                    title="Ingrese una dirección de correo electrónico válida"
+                    placeholder="ejemplo@cooperativa.com"
+                    required 
+                  />
+                  <small class="form-help">Se enviará toda la información de la votación a esta dirección</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Sección de Titulares -->
           <section id="titulares-section">
             <h2>Titulares</h2>

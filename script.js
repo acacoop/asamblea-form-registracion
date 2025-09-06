@@ -15,8 +15,8 @@ const state = {
 const config = {
   // Endpoint de Power Automate para envío de datos
   apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/de424a7251e74d6e861544b4c6c41352/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=si_BRNHv_4rn9mFJysIEFomXlAtPaqOUq-D-jWl74Og",
-  // Endpoint para autenticación de cooperativas (reemplazar con tu endpoint)
-  authEndpoint: "https://tu-dominio.com/api/auth/cooperativa",
+  // Endpoint de Power Automate para autenticación de cooperativas
+  authEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d4951cc773a048c9964ef65dfdd3c69c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=tG24Qxrd_AUtjKiQR8D1lt2yvbOtZZNBtkYEXn9_aZI",
   timeout: 30000, // 30 segundos
 };
 
@@ -1028,6 +1028,33 @@ function validateAndSave() {
     return false;
   }
 
+  // Validar campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  
+  if (!secretarioInput || !secretarioInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del secretario");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(secretarioInput.value.trim())) {
+    errors.push("El nombre del secretario solo puede contener letras y espacios");
+  }
+  
+  if (!presidenteInput || !presidenteInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del presidente");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(presidenteInput.value.trim())) {
+    errors.push("El nombre del presidente solo puede contener letras y espacios");
+  }
+
+  // Validar campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (!correoInput || !correoInput.value.trim()) {
+    errors.push("Debe ingresar un correo electrónico de contacto");
+  } else {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!emailRegex.test(correoInput.value.trim())) {
+      errors.push("El correo electrónico no tiene un formato válido");
+    }
+  }
+
   // Validar cantidad de titulares (debe ser entre 1 y 6)
   if (state.titulares.length === 0) {
     errors.push("Debe haber al menos 1 titular");
@@ -1190,6 +1217,33 @@ function validate() {
     errors.push("Debe seleccionar una cooperativa");
     showErrors(errors);
     return false;
+  }
+
+  // Validar campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  
+  if (!secretarioInput || !secretarioInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del secretario");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(secretarioInput.value.trim())) {
+    errors.push("El nombre del secretario solo puede contener letras y espacios");
+  }
+  
+  if (!presidenteInput || !presidenteInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del presidente");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(presidenteInput.value.trim())) {
+    errors.push("El nombre del presidente solo puede contener letras y espacios");
+  }
+
+  // Validar campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (!correoInput || !correoInput.value.trim()) {
+    errors.push("Debe ingresar un correo electrónico de contacto");
+  } else {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!emailRegex.test(correoInput.value.trim())) {
+      errors.push("El correo electrónico no tiene un formato válido");
+    }
   }
 
   // Validar cantidad de titulares (debe ser entre 1 y 6)
@@ -1420,6 +1474,10 @@ function showSaveSuccessWithResumen() {
 
 // Función para generar el JSON con los datos del formulario
 function generateFormDataJSON() {
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  const correoInput = document.getElementById("correo-electronico");
+  
   const formData = {
     timestamp: new Date().toISOString(),
     cooperativa: {
@@ -1429,6 +1487,13 @@ function generateFormDataJSON() {
       suplentes: state.cooperativaSeleccionada?.substitutes || 0,
       car: state.cooperativaSeleccionada?.CAR || 0,
       carNombre: state.cooperativaSeleccionada?.["CAR Nombre"] || "",
+    },
+    autoridades: {
+      secretario: secretarioInput?.value?.trim() || "",
+      presidente: presidenteInput?.value?.trim() || "",
+    },
+    contacto: {
+      correoElectronico: correoInput?.value?.trim() || "",
     },
     titulares: [],
     suplentes: [],
@@ -1708,6 +1773,13 @@ function downloadJSONBackup(data) {
 function generateResumen() {
   const resumen = {
     cooperativa: state.cooperativaSeleccionada,
+    autoridades: {
+      secretario: "",
+      presidente: ""
+    },
+    contacto: {
+      correoElectronico: ""
+    },
     titulares: state.titulares.map((t) => {
       const card = document.querySelector(`[data-id="${t.id}"]`);
       return {
@@ -1733,6 +1805,20 @@ function generateResumen() {
       };
     }),
   };
+
+  // Obtener datos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  const correoInput = document.getElementById("correo-electronico");
+  if (secretarioInput) {
+    resumen.autoridades.secretario = secretarioInput.value.trim();
+  }
+  if (presidenteInput) {
+    resumen.autoridades.presidente = presidenteInput.value.trim();
+  }
+  if (correoInput) {
+    resumen.contacto.correoElectronico = correoInput.value.trim();
+  }
 
   // Calcular votos representados
   resumen.delegaciones.forEach((d) => {
@@ -1770,6 +1856,24 @@ function updateResumen() {
         <p><strong>CUIT:</strong> ${resumen.cooperativa.cuit}</p>
         <p><strong>Votos totales:</strong> ${resumen.cooperativa.votes}</p>
     </div>`;
+
+  // Mostrar información de autoridades si está disponible
+  if (resumen.autoridades && (resumen.autoridades.secretario || resumen.autoridades.presidente)) {
+    html += `<div class="card">
+        <h3>Autoridades de la Cooperativa</h3>
+        ${resumen.autoridades.secretario ? `<p><strong>Secretario:</strong> ${resumen.autoridades.secretario}</p>` : ''}
+        ${resumen.autoridades.presidente ? `<p><strong>Presidente:</strong> ${resumen.autoridades.presidente}</p>` : ''}
+    </div>`;
+  }
+
+  // Mostrar información de contacto si está disponible
+  if (resumen.contacto && resumen.contacto.correoElectronico) {
+    html += `<div class="card">
+        <h3>Información de Contacto</h3>
+        <p><strong>Correo Electrónico:</strong> ${resumen.contacto.correoElectronico}</p>
+        <p><small>Se enviará toda la información de la votación a esta dirección</small></p>
+    </div>`;
+  }
 
   html += "<h3>Distribución de Votos:</h3>";
   let totalVotosEjercidos = 0;
@@ -2062,6 +2166,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal.style.display = "none";
     }
   });
+
+  // Event listeners para campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  if (secretarioInput) {
+    secretarioInput.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+    });
+  }
+
+  const presidenteInput = document.getElementById("presidente");
+  if (presidenteInput) {
+    presidenteInput.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+    });
+  }
+
+  // Event listener para el campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (correoInput) {
+    correoInput.addEventListener("input", function () {
+      // Convertir a minúsculas y eliminar espacios
+      this.value = this.value.toLowerCase().replace(/\s/g, "");
+    });
+  }
 
   // Inicializar estado de botones
   updateButtonStates();

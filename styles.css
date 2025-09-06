@@ -331,6 +331,16 @@ select:focus {
   box-shadow: 0 0 8px rgba(40, 45, 135, 0.2);
 }
 
+.form-help {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 5px;
+  font-style: italic;
+  line-height: 1.3;
+  display: block;
+  padding-left: 2px;
+}
+
 h1 {
   text-align: center;
   color: var(--aca-blue);
@@ -759,6 +769,24 @@ section {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+
+.autoridades-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#autoridades-section {
+  margin-bottom: 25px;
+}
+
+#autoridades-section .form-row {
+  margin-bottom: 15px;
+}
+
+#autoridades-section .form-group {
+  width: 100%;
 }
 
 /* Indicadores de estado */
