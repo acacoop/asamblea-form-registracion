@@ -13,12 +13,12 @@ const state = {
 
 // Configuración del endpoint
 const config = {
-  // Endpoint de Power Automate para envío de datos
-  apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/de424a7251e74d6e861544b4c6c41352/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=si_BRNHv_4rn9mFJysIEFomXlAtPaqOUq-D-jWl74Og",
   // Endpoint de Power Automate para autenticación de cooperativas
   authEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d4951cc773a048c9964ef65dfdd3c69c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=tG24Qxrd_AUtjKiQR8D1lt2yvbOtZZNBtkYEXn9_aZI",
-  // Endpoint de Power Automate para consultar datos existentes (REEMPLAZAR CON TU ENDPOINT)
-  consultarDatosEndpoint: "https://tu-dominio.com/api/consultar-registro",
+  // Endpoint de Power Automate para consultar datos existentes
+  consultarDatosEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/e980d91152364b8abdaf074cc89333f6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SaU4EI--DvquBrXGb3DhTqSnTbb_8BGpse6Y6AImsUY",
+  // Endpoint de Power Automate para envío de datos
+  apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/5c5268b7ca894a09be1fb41effc24156/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=_QA3lITPQ59jUXF-4byKGSQ_vce0Xb5vO3uHmLTf9f8",
   timeout: 30000, // 30 segundos
 };
 
