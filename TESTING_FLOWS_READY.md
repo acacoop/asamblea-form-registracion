@@ -1,6 +1,50 @@
 # Guía de Testing - Flows Configurados y Listos
 
-## ✅ **Estado Actual - URLs Configuradas**
+## 🔧 **Actualización Importante: Uso de Campo Title**
+
+### ⚠️ **CORRECCIÓN NECESARIA EN TODOS LOS FLOWS:**
+
+**Problema detectado**: En los flows se estaba usando `[Numero_x0020_de_x0020_coop]` pero debe usarse **`Title`** que es el campo estándar de SharePoint.
+
+### 📝 **Cambios Requeridos en Power Automate:**
+
+#### **Flow 1 - Autenticación: Filter Query a corregir:**
+```
+CAMBIAR DE:
+[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['codigo_cooperativa']}' and CodVerificador eq '@{triggerBody()['codigo_verificador']}'
+
+CAMBIAR A:
+Title eq '@{triggerBody()['codigo_cooperativa']}' and CodVerificador eq '@{triggerBody()['codigo_verificador']}'
+```
+
+#### **Flow 2 - Consulta: Filter Query a corregir:**
+```
+CAMBIAR DE:
+[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['codigo_cooperativa']}'
+
+CAMBIAR A:
+Title eq '@{triggerBody()['codigo_cooperativa']}'
+```
+
+#### **Flow 3 - Guardado: Filter Query a corregir:**
+```
+CAMBIAR DE:
+[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['cooperativa']['codigo']}'
+
+CAMBIAR A:
+Title eq '@{triggerBody()['cooperativa']['codigo']}'
+```
+
+#### **Flow 1 - Respuesta: Campo en JSON a corregir:**
+```
+CAMBIAR DE:
+"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Numero_x0020_de_x0020_coop']}"
+
+CAMBIAR A:
+"code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}"
+```
+
+---
 
 Los 3 flows de Power Automate están creados y las URLs ya están configuradas en el frontend:
 

@@ -28,7 +28,7 @@ Estos flows están adaptados específicamente para trabajar con tu lista existen
 - **List Name**: [Listado de cooperativas]
 - **Filter Query**: 
 ```
-[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['codigo_cooperativa']}' and CodVerificador eq '@{triggerBody()['codigo_verificador']}'
+Title eq '@{triggerBody()['codigo_cooperativa']}' and CodVerificador eq '@{triggerBody()['codigo_verificador']}'
 ```
 - **Top Count**: 1
 
@@ -49,7 +49,7 @@ length(body('Get_items')?['value']) is greater than 0
 {
     "success": true,
     "cooperativa": {
-        "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Numero_x0020_de_x0020_coop']}",
+        "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}",
         "cuit": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CUIT']}",
         "name": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Nombre_x0020_completo']}",
         "votes": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']}",
@@ -95,7 +95,7 @@ length(body('Get_items')?['value']) is greater than 0
 - **List Name**: [Listado de cooperativas]
 - **Filter Query**:
 ```
-[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['codigo_cooperativa']}'
+Title eq '@{triggerBody()['codigo_cooperativa']}'
 ```
 - **Top Count**: 1
 
@@ -227,7 +227,7 @@ outputs('Compose_-_Datos_Cooperativa')?['RegistroCompleto'] is equal to true
 - **List Name**: [Listado de cooperativas]
 - **Filter Query**:
 ```
-[Numero_x0020_de_x0020_coop] eq '@{triggerBody()['cooperativa']['codigo']}'
+Title eq '@{triggerBody()['cooperativa']['codigo']}'
 ```
 - **Top Count**: 1
 
@@ -311,7 +311,7 @@ Cuando agregues las columnas a SharePoint, se generarán nombres internos. Aquí
 
 | Nombre Columna | Nombre Interno SharePoint |
 |----------------|---------------------------|
-| `Numero de coop` | `Numero_x0020_de_x0020_coop` |
+| `Title` | `Title` |
 | `Nombre completo` | `Nombre_x0020_completo` |
 | `D.E.` | `D_x002e_E_x002e_` |
 | `D.E. Nombre` | `D_x002e_E_x002e__x0020_Nombre` |
