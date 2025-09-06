@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Consulta Frontend</title>
+</head>
+<body>
+    <h1>Test de Consulta Frontend</h1>
+    <div>
+        <label>Código Cooperativa:</label>
+        <input type="number" id="codigo" value="162" />
+        <button onclick="testConsulta()">Probar Consulta</button>
+    </div>
+    <div id="resultado" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+
+    <script>
+        // Configuración
+        const FLOW_URL = "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/e980d91152364b8abdaf074cc89333f6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SaU4EI--DvquBrXGb3DhTqSnTbb_8BGpse6Y6AImsUY";
+
+        // Función para normalizar texto (UTF-8)
+        function normalizeText(text) {
+            if (typeof text !== 'string') return text;
+            
+            return text
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^\x00-\x7F]/g, function(match) {
+                    const replacements = {
+                        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+                        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+                        'ñ': 'n', 'Ñ': 'N',
+                        'ü': 'u', 'Ü': 'U',
+                        'ç': 'c', 'Ç': 'C'
+                    };
+                    return replacements[match] || match;
+                });
+        }
+
+        // Función para normalizar objeto
+        function normalizeObject(obj) {
+            if (obj === null || obj === undefined) return obj;
+            
+            if (typeof obj === 'string') {
+                return normalizeText(obj);
+            }
+            
+            if (typeof obj === 'number' || typeof obj === 'boolean') {
+                return obj;
+            }
+            
+            if (Array.isArray(obj)) {
+                return obj.map(item => normalizeObject(item));
+            }
+            
+            if (typeof obj === 'object') {
+                const normalized = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    normalized[normalizeText(key)] = normalizeObject(value);
+                }
+                return normalized;
+            }
+            
+            return obj;
+        }
+
+        async function testConsulta() {
+            const codigo = document.getElementById('codigo').value;
+            const resultadoDiv = document.getElementById('resultado');
+            
+            resultadoDiv.innerHTML = '<p>🔄 Consultando...</p>';
+            
+            try {
+                console.log('🔍 Iniciando consulta para código:', codigo);
+                
+                const payload = { codigo_cooperativa: codigo.toString() };
+                const normalizedPayload = normalizeObject(payload);
+                
+                console.log('📤 Payload normalizado:', normalizedPayload);
+                
+                const response = await fetch(FLOW_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(normalizedPayload)
+                });
+                
+                console.log('📥 Respuesta recibida:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const responseText = await response.text();
+                console.log('📝 Contenido de respuesta (texto):', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('📋 Datos parseados:', data);
+                } catch (parseError) {
+                    console.error('❌ Error al parsear JSON:', parseError);
+                    resultadoDiv.innerHTML = `<p style="color: red;">❌ Error al parsear respuesta: ${parseError.message}</p><pre>${responseText}</pre>`;
+                    return;
+                }
+                
+                if (data.success) {
+                    resultadoDiv.innerHTML = `
+                        <h3 style="color: green;">✅ Consulta Exitosa</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultadoDiv.innerHTML = `
+                        <h3 style="color: orange;">ℹ️ No hay datos previos</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error en consulta:', error);
+                resultadoDiv.innerHTML = `
+                    <h3 style="color: red;">❌ Error en Consulta</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Tipo:</strong> ${error.name}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

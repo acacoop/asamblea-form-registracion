@@ -1,0 +1,31 @@
+{
+    "timestamp": "2025-09-06T18:50:00.000Z",
+    "cooperativa": {
+        "codigo": "9",
+        "nombre": "Cooperativa Agropecuaria de Armstrong Ltda.",
+        "votos": 2,
+        "suplentes": 0,
+        "car": "3",
+        "carNombre": "Centro y Sur de Santa Fe"
+    },
+    "autoridades": {
+        "secretario": "Juan Perez TEST",
+        "presidente": "Maria Gonzalez TEST"
+    },
+    "contacto": {
+        "correoElectronico": "test@armstrong.com"
+    },
+    "titulares": [
+        {
+            "id": "titular-1",
+            "nombre": "Carlos Test",
+            "documento": "12345678",
+            "orden": 1
+        }
+    ],
+    "suplentes": [],
+    "cartasPoder": [],
+    "resumen": {
+        "votosEfectivos": 2
+    }
+}

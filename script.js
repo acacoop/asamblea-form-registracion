@@ -235,15 +235,21 @@ async function consultarDatosExistentes(codigoCooperativa) {
   try {
     console.log('🔍 Consultando datos existentes para cooperativa:', codigoCooperativa);
     
+    // Crear datos para consulta - USAR codigo_cooperativa como espera el flow
+    const consultaData = { codigo_cooperativa: codigoCooperativa.toString() };
+    
+    // Normalizar datos para evitar problemas de encoding
+    const normalizedData = normalizeObject(consultaData);
+    
+    console.log('📤 Enviando consulta:', JSON.stringify(normalizedData));
+    
     const response = await fetch(config.consultarDatosEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        codigo_cooperativa: codigoCooperativa
-      })
+      body: JSON.stringify(normalizedData)
     });
     
     console.log('🌐 Respuesta de consulta de datos:', {
@@ -1682,9 +1688,9 @@ function generateFormDataJSON() {
     cooperativa: {
       codigo: state.cooperativaSeleccionada?.code || "",
       nombre: state.cooperativaSeleccionada?.name || "",
-      votos: state.cooperativaSeleccionada?.votes || 0,
-      suplentes: state.cooperativaSeleccionada?.substitutes || 0,
-      car: state.cooperativaSeleccionada?.CAR || 0,
+      votos: parseInt(state.cooperativaSeleccionada?.votes) || 0,
+      suplentes: parseInt(state.cooperativaSeleccionada?.substitutes) || 0,
+      car: state.cooperativaSeleccionada?.CAR || "0",
       carNombre: state.cooperativaSeleccionada?.["CAR Nombre"] || "",
     },
     autoridades: {
@@ -1785,10 +1791,39 @@ function generateFormDataJSON() {
 }
 
 // Función para enviar los datos al endpoint
+// Función para normalizar caracteres especiales (acentos, etc.)
+function normalizeText(text) {
+  if (typeof text !== 'string') return text;
+  
+  return text
+    .normalize('NFD') // Descomponer caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, '') // Remover marcas diacríticas (acentos)
+    .replace(/[ñÑ]/g, match => match === 'ñ' ? 'n' : 'N'); // Manejar ñ específicamente si es necesario
+}
+
+// Función para normalizar recursivamente un objeto
+function normalizeObject(obj) {
+  if (typeof obj === 'string') {
+    return normalizeText(obj);
+  } else if (Array.isArray(obj)) {
+    return obj.map(normalizeObject);
+  } else if (obj && typeof obj === 'object') {
+    const normalized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      normalized[key] = normalizeObject(value);
+    }
+    return normalized;
+  }
+  return obj;
+}
+
 async function sendDataToEndpoint(data) {
   try {
+    // Normalizar caracteres especiales para evitar problemas de encoding
+    const normalizedData = normalizeObject(data);
+    
     console.log("Enviando datos al endpoint:", config.apiEndpoint);
-    console.log("Datos a enviar:", JSON.stringify(data, null, 2));
+    console.log("Datos a enviar:", JSON.stringify(normalizedData, null, 2));
 
     // Crear un AbortController para manejar timeout
     const controller = new AbortController();
@@ -1800,7 +1835,7 @@ async function sendDataToEndpoint(data) {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(normalizedData),
       signal: controller.signal,
     });
 

@@ -53,7 +53,7 @@ length(body('Get_items')?['value']) is greater than 0
         "cuit": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CUIT']}",
         "name": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_2']}",
         "votes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}",
-        "substitutes": "@{div(int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']), 3)}",
+        "substitutes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}",
         "CAR": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_6']}",
         "CAR Nombre": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_7']?['Value']}",
         "codigo_verificador": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CodVerificador']}"
@@ -357,7 +357,7 @@ curl -X POST "https://tu-flow-auth-url" \
         "cuit": "30529717233",
         "name": "Cooperativa Agropecuaria de Alcorta Ltda.",
         "votes": 1,
-        "substitutes": 0,
+        "substitutes": 1,
         "CAR": "3",
         "CAR Nombre": "Centro y Sur de Santa Fe",
         "codigo_verificador": "51CYD"

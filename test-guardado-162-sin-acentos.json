@@ -1,0 +1,68 @@
+{
+    "timestamp": "2025-09-06T19:37:23.681Z",
+    "cooperativa": {
+        "codigo": "162",
+        "nombre": "La Alianza, Agricola Ganadera Ltda.",
+        "votos": 2,
+        "suplentes": 2,
+        "car": "6",
+        "carNombre": "SO Bs. Aires, La Pampa y Rio Negro"
+    },
+    "autoridades": {
+        "secretario": "Secretario",
+        "presidente": "Presidente"
+    },
+    "contacto": {
+        "correoElectronico": "ebourdajorge@acacoop.com.ar"
+    },
+    "titulares": [
+        {
+            "id": "mf8o0fjvbvurx4hkqyo",
+            "nombre": "Titular a",
+            "documento": "4646464",
+            "orden": 1
+        },
+        {
+            "id": "mf8o0peub8jprximt0a",
+            "nombre": "Titular b",
+            "documento": "4564654",
+            "orden": 2
+        }
+    ],
+    "suplentes": [
+        {
+            "id": "mf8o0tzrwvug90y78qa",
+            "nombre": "Suplente a",
+            "documento": "5456456",
+            "orden": 1
+        },
+        {
+            "id": "mf8o0z2nde7w2gl9nol",
+            "nombre": "Suplente b",
+            "documento": "3232323232",
+            "orden": 2
+        }
+    ],
+    "cartasPoder": [
+        {
+            "id": "mf8o13h5b3k6fy83aha",
+            "poderdante": {
+                "id": "mf8o0fjvbvurx4hkqyo",
+                "nombre": "Titular a",
+                "documento": "4646464"
+            },
+            "apoderado": {
+                "id": "mf8o0peub8jprximt0a",
+                "nombre": "Titular b",
+                "documento": "4564654"
+            },
+            "orden": 1
+        }
+    ],
+    "resumen": {
+        "totalTitulares": 2,
+        "totalSuplentes": 2,
+        "totalCartasPoder": 1,
+        "votosEfectivos": 2
+    }
+}
