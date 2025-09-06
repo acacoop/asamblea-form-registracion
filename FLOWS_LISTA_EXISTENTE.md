@@ -51,11 +51,11 @@ length(body('Get_items')?['value']) is greater than 0
     "cooperativa": {
         "code": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Title']}",
         "cuit": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CUIT']}",
-        "name": "@{outputs('Compose_-_Cooperativa_Encontrada')?['Nombre_x0020_completo']}",
+        "name": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_2']}",
         "votes": "@{int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos'])}",
         "substitutes": "@{div(int(outputs('Compose_-_Cooperativa_Encontrada')?['Total_x0020_votos']), 3)}",
-        "CAR": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CAR']}",
-        "CAR Nombre": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CAR_x0020_Nombre']}",
+        "CAR": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_6']}",
+        "CAR Nombre": "@{outputs('Compose_-_Cooperativa_Encontrada')?['field_7']?['Value']}",
         "codigo_verificador": "@{outputs('Compose_-_Cooperativa_Encontrada')?['CodVerificador']}"
     }
 }
@@ -144,7 +144,7 @@ outputs('Compose_-_Datos_Cooperativa')?['RegistroCompleto'] is equal to true
             "presidente": "@{coalesce(outputs('Compose_-_Datos_Cooperativa')?['PresidenteNombre'], '')}"
         },
         "contacto": {
-            "correoElectronico": "@{coalesce(outputs('Compose_-_Datos_Cooperativa')?['CorreoRegistro'], outputs('Compose_-_Datos_Cooperativa')?['Mail_x0020_principal'])}"
+            "correoElectronico": "@{coalesce(outputs('Compose_-_Datos_Cooperativa')?['CorreoRegistro'], outputs('Compose_-_Datos_Cooperativa')?['Mailprincipal'])}"
         },
         "titulares": "@{outputs('Compose_-_Parsear_Titulares')}",
         "suplentes": "@{outputs('Compose_-_Parsear_Suplentes')}",
@@ -312,16 +312,13 @@ Cuando agregues las columnas a SharePoint, se generarán nombres internos. Aquí
 | Nombre Columna | Nombre Interno SharePoint |
 |----------------|---------------------------|
 | `Title` | `Title` |
-| `Nombre completo` | `Nombre_x0020_completo` |
-| `D.E.` | `D_x002e_E_x002e_` |
-| `D.E. Nombre` | `D_x002e_E_x002e__x0020_Nombre` |
-| `CAR Nombre` | `CAR_x0020_Nombre` |
-| `Ctro Contacto` | `Ctro_x0020_Contacto` |
-| `Votos Consec` | `Votos_x0020_Consec` |
-| `Votos Asoc` | `Votos_x0020_Asoc` |
+| `CUIT` | `CUIT` |
+| `field_2` (Nombre completo) | `field_2` |
+| `field_6` (CAR) | `field_6` |
+| `field_7` (CAR Nombre) | `field_7` |
 | `Total votos` | `Total_x0020_votos` |
-| `Mail principal` | `Mail_x0020_principal` |
-| `Mail copia` | `Mail_x0020_copia` |
+| `Mail principal` | `Mailprincipal` |
+| `Código Verificador` | `CodVerificador` |
 | `RegistroCompleto` | `RegistroCompleto` |
 | `FechaRegistro` | `FechaRegistro` |
 | `FechaUltimaActualizacion` | `FechaUltimaActualizacion` |
