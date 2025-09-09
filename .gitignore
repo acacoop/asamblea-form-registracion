@@ -57,3 +57,5 @@ Thumbs.db
 # Test results
 test-results/
 coverage/
+
+data/
