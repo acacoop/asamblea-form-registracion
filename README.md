@@ -15,15 +15,32 @@ Sistema web para el registro de delegados titulares, suplentes y cartas poder pa
 ## Estructura del Proyecto
 
 ```
-├── index.html          # Página principal con formularios
-├── styles.css          # Estilos CSS con tema ACA
-├── script.js           # Lógica JavaScript y validaciones
-├── data/
-│   ├── cooperatives.csv     # Base de datos original (deprecated)
-│   └── cooperatives_con_car.csv # Base de datos con información de CARs
-├── API_CONFIG.md       # Documentación de configuración API
-├── ejemplo-json.json   # Ejemplo de estructura JSON generada
-└── README.md          # Este archivo
+├── index.html               # Página principal con formularios
+├── styles.css               # Estilos CSS con tema ACA
+├── script.js                # Lógica JavaScript y validaciones
+├── background.jpg           # Imagen de fondo
+├── listado-cooperativas-actual.csv # Lista actual de cooperativas
+├── data/                    # Datos del sistema
+│   ├── cooperatives.csv           # Base de datos original (deprecated)
+│   ├── cooperatives_con_car.csv   # Base de datos con información de CARs
+│   └── cooperatives_con_car_codigos.csv # Base con códigos adicionales
+├── docs/                    # Documentación técnica
+│   ├── API_CONFIG.md              # Configuración de la API
+│   ├── ENDPOINT_SPEC.md           # Especificación de endpoints
+│   ├── SHAREPOINT_STRUCTURE.md    # Estructura de SharePoint
+│   ├── EXCEL_STRUCTURE.md         # Estructura de Excel
+│   ├── POWER_AUTOMATE_FLOWS.md    # Flujos de Power Automate
+│   └── CONSULTA_DATOS_SPEC.md     # Especificación de consulta de datos
+├── examples/                # Archivos de ejemplo
+│   ├── ejemplo-json.json          # Ejemplo de estructura JSON
+│   ├── ejemplo-lista-adaptada.csv # Ejemplo de lista adaptada
+│   └── ejemplo-sharepoint-import.csv # Ejemplo de importación a SharePoint
+├── tests/                   # Archivos de prueba
+│   ├── test-consulta*.json        # Pruebas de consulta
+│   ├── test-guardado*.json        # Pruebas de guardado
+│   └── test-consulta-frontend.html # Prueba de frontend
+├── fonts/                   # Fuentes tipográficas
+└── README.md               # Este archivo
 ```
 
 ## Funcionalidades Principales
