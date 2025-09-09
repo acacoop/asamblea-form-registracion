@@ -5,6 +5,7 @@ const state = {
   cartasPoder: [],
   cooperativas: [],
   cooperativaSeleccionada: null,
+  usuarioAutenticado: false,
   maxTitulares: 6,
   maxSuplentes: 6,
   maxCartasPoder: 2,
@@ -12,13 +13,770 @@ const state = {
 
 // Configuración del endpoint
 const config = {
-  // Cambia esta URL por tu endpoint real
-  apiEndpoint: "https://tu-endpoint-aqui.com/api/registro-asamblea",
+  // Endpoint de Power Automate para autenticación de cooperativas
+  authEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d4951cc773a048c9964ef65dfdd3c69c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=tG24Qxrd_AUtjKiQR8D1lt2yvbOtZZNBtkYEXn9_aZI",
+  // Endpoint de Power Automate para consultar datos existentes
+  consultarDatosEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/e980d91152364b8abdaf074cc89333f6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SaU4EI--DvquBrXGb3DhTqSnTbb_8BGpse6Y6AImsUY",
+  // Endpoint de Power Automate para envío de datos
+  apiEndpoint: "https://defaulta7cad06884854149bb950f323bdfa8.9e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/5c5268b7ca894a09be1fb41effc24156/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=_QA3lITPQ59jUXF-4byKGSQ_vce0Xb5vO3uHmLTf9f8",
   timeout: 30000, // 30 segundos
 };
 
+// Funciones de autenticación
+async function intentarLogin() {
+  const codigoCooperativa = document.getElementById('codigo-cooperativa').value.trim();
+  const codigoVerificador = document.getElementById('codigo-verificador').value.trim();
+  const errorElement = document.getElementById('login-error');
+  const loginBtn = document.getElementById('btn-login');
+  
+  // Limpiar error anterior
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+  
+  // Validar campos
+  if (!codigoCooperativa || !codigoVerificador) {
+    mostrarErrorLogin('Por favor complete ambos campos');
+    return;
+  }
+  
+  // Deshabilitar botón durante la validación
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Verificando...';
+  
+  try {
+    console.log('🔐 Intentando autenticación con endpoint:', { codigoCooperativa, codigoVerificador });
+    
+    // Llamar al endpoint de autenticación
+    const cooperativa = await autenticarConEndpoint(codigoCooperativa, codigoVerificador);
+    
+    if (cooperativa) {
+      // Autenticación exitosa
+      state.usuarioAutenticado = true;
+      state.cooperativaSeleccionada = cooperativa;
+      
+      console.log('✅ Autenticación exitosa para:', cooperativa.name);
+      
+      // Ocultar pantalla de credenciales y mostrar pantalla de registro
+      const credencialesScreen = document.getElementById('credenciales-screen');
+      const registroScreen = document.getElementById('registro-screen');
+      
+      if (credencialesScreen && registroScreen) {
+        credencialesScreen.style.display = 'none';
+        registroScreen.style.display = 'block';
+        
+        // Mostrar información de cooperativa
+        mostrarInformacionCooperativa(cooperativa);
+        
+        // Consultar automáticamente datos existentes y precargar formulario
+        await consultarYPrecargarDatos();
+        
+        // Actualizar estados de botones después del login
+        updateButtonStates();
+      } else {
+        console.error('❌ No se encontraron las pantallas de credenciales o registro');
+        mostrarErrorLogin('Error al cambiar de pantalla');
+      }
+      
+    } else {
+      mostrarErrorLogin('Código de cooperativa o código verificador incorrecto');
+    }
+  } catch (error) {
+    console.error('❌ Error en autenticación:', error);
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      mostrarErrorLogin('Error de conexión. Verifique su internet e intente nuevamente');
+    } else if (error.message.includes('404')) {
+      mostrarErrorLogin('Servicio de autenticación no disponible');
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+      mostrarErrorLogin('Credenciales incorrectas');
+    } else {
+      mostrarErrorLogin('Error al verificar credenciales: ' + error.message);
+    }
+  } finally {
+    // Rehabilitar botón
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Acceder';
+  }
+}
+
+// Nueva función para autenticar contra el endpoint
+async function autenticarConEndpoint(codigoCooperativa, codigoVerificador) {
+  try {
+    const response = await fetch(config.authEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        codigo_cooperativa: codigoCooperativa,
+        codigo_verificador: codigoVerificador
+      })
+    });
+    
+    console.log('🌐 Respuesta del endpoint de autenticación:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // Credenciales incorrectas
+        return null;
+      } else {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const responseText = await response.text();
+    console.log('📝 Contenido de respuesta:', responseText);
+    
+    if (!responseText.trim()) {
+      throw new Error('Respuesta vacía del servidor');
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Error al parsear JSON:', parseError);
+      throw new Error('Respuesta del servidor no válida');
+    }
+    
+    // Verificar que la respuesta tenga la estructura esperada
+    if (data && data.cooperativa) {
+      console.log('✅ Datos de cooperativa recibidos:', data.cooperativa);
+      return data.cooperativa;
+    } else if (data && data.success === false) {
+      // El endpoint indica que las credenciales son incorrectas
+      return null;
+    } else {
+      console.error('❌ Estructura de respuesta inesperada:', data);
+      throw new Error('Estructura de respuesta del servidor no válida');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en autenticarConEndpoint:', error);
+    throw error;
+  }
+}
+
+function mostrarErrorLogin(mensaje) {
+  let errorElement = document.getElementById('login-error');
+  if (!errorElement) {
+    errorElement = document.createElement('div');
+    errorElement.id = 'login-error';
+    errorElement.className = 'login-error';
+    const loginForm = document.getElementById('login-form');
+    loginForm.appendChild(errorElement);
+  }
+  
+  errorElement.textContent = mensaje;
+  errorElement.style.display = 'block';
+}
+
+function mostrarInformacionCooperativa(cooperativa) {
+  console.log('🔄 Mostrando información de cooperativa:', cooperativa.name);
+  
+  // Actualizar datos de la cooperativa autenticada con verificación de existencia
+  const nombreElement = document.getElementById('cooperativa-nombre');
+  const codigoElement = document.getElementById('cooperativa-codigo');
+  const carElement = document.getElementById('cooperativa-car');
+  const votosElement = document.getElementById('cooperativa-votos');
+  const suplentesElement = document.getElementById('cooperativa-suplentes');
+  
+  if (nombreElement) {
+    nombreElement.textContent = cooperativa.name;
+    console.log('✅ Nombre actualizado:', cooperativa.name);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-nombre no encontrado');
+  }
+  
+  if (codigoElement) {
+    codigoElement.textContent = cooperativa.code;
+    console.log('✅ Código actualizado:', cooperativa.code);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-codigo no encontrado');
+  }
+  
+  if (carElement) {
+    carElement.textContent = `CAR ${cooperativa.CAR} - ${cooperativa['CAR Nombre'] || 'No disponible'}`;
+    console.log('✅ CAR actualizado');
+  } else {
+    console.warn('⚠️ Elemento cooperativa-car no encontrado');
+  }
+  
+  if (votosElement) {
+    votosElement.textContent = cooperativa.votes;
+    console.log('✅ Votos actualizados:', cooperativa.votes);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-votos no encontrado');
+  }
+  
+  if (suplentesElement) {
+    suplentesElement.textContent = cooperativa.substitutes;
+    console.log('✅ Suplentes actualizados:', cooperativa.substitutes);
+  } else {
+    console.warn('⚠️ Elemento cooperativa-suplentes no encontrado');
+  }
+  
+  console.log('✅ Información de cooperativa procesada exitosamente');
+  
+  // Preparar los límites según los votos de la cooperativa
+  state.maxTitulares = cooperativa.votes || 6;
+  state.maxSuplentes = cooperativa.substitutes || 6;
+  
+  // Limpiar datos anteriores
+  state.titulares = [];
+  state.suplentes = [];
+  state.cartasPoder = [];
+}
+
+// Nueva función para consultar datos existentes
+async function consultarDatosExistentes(codigoCooperativa) {
+  try {
+    console.log('🔍 Consultando datos existentes para cooperativa:', codigoCooperativa);
+    
+    // Crear datos para consulta - USAR codigo_cooperativa como espera el flow
+    const consultaData = { codigo_cooperativa: codigoCooperativa.toString() };
+    
+    // Normalizar datos para evitar problemas de encoding
+    const normalizedData = normalizeObject(consultaData);
+    
+    console.log('📤 Enviando consulta:', JSON.stringify(normalizedData));
+    
+    const response = await fetch(config.consultarDatosEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(normalizedData)
+    });
+    
+    console.log('🌐 Respuesta de consulta de datos:', {
+      status: response.status,
+      statusText: response.statusText
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        // No hay datos previos, es normal
+        console.log('ℹ️ No se encontraron datos previos para esta cooperativa');
+        return null;
+      } else {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const responseText = await response.text();
+    console.log('📝 Contenido de respuesta consulta:', responseText);
+    
+    if (!responseText.trim()) {
+      console.log('ℹ️ Respuesta vacía - no hay datos previos');
+      return null;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Error al parsear JSON de consulta:', parseError);
+      throw new Error('Respuesta del servidor no válida');
+    }
+    
+    // Verificar que la respuesta tenga la estructura esperada
+    if (data && data.success === true && data.datos) {
+      console.log('✅ Datos existentes encontrados:', data.datos);
+      return data.datos;
+    } else if (data && data.success === false) {
+      // No hay datos previos
+      console.log('ℹ️ No hay datos previos guardados');
+      return null;
+    } else {
+      console.error('❌ Estructura de respuesta inesperada:', data);
+      return null;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en consultarDatosExistentes:', error);
+    // No es un error crítico, simplemente no hay datos previos
+    return null;
+  }
+}
+
+// Función para precargar datos existentes en el formulario
+function precargarDatosEnFormulario(datos) {
+  console.log('📋 Precargando datos en formulario:', datos);
+  
+  try {
+    // Precargar autoridades
+    if (datos.autoridades) {
+      const secretarioInput = document.getElementById('secretario');
+      const presidenteInput = document.getElementById('presidente');
+      
+      if (secretarioInput && datos.autoridades.secretario) {
+        secretarioInput.value = datos.autoridades.secretario;
+        console.log('✅ Secretario precargado:', datos.autoridades.secretario);
+      }
+      
+      if (presidenteInput && datos.autoridades.presidente) {
+        presidenteInput.value = datos.autoridades.presidente;
+        console.log('✅ Presidente precargado:', datos.autoridades.presidente);
+      }
+    }
+    
+    // Precargar correo
+    if (datos.contacto && datos.contacto.correoElectronico) {
+      const correoInput = document.getElementById('correo-electronico');
+      if (correoInput) {
+        correoInput.value = datos.contacto.correoElectronico;
+        console.log('✅ Correo precargado:', datos.contacto.correoElectronico);
+      }
+    }
+    
+    // Precargar titulares
+    let titularesArray = datos.titulares;
+    if (typeof datos.titulares === 'string') {
+      try {
+        titularesArray = JSON.parse(datos.titulares);
+        console.log('📋 Titulares parseados desde string JSON:', titularesArray);
+      } catch (error) {
+        console.error('❌ Error al parsear titulares JSON:', error);
+        titularesArray = [];
+      }
+    }
+    
+    if (titularesArray && Array.isArray(titularesArray)) {
+      titularesArray.forEach((titular, index) => {
+        addTitular();
+        const titularCard = document.querySelector(`[data-id="${state.titulares[index].id}"]`);
+        if (titularCard) {
+          const nombreInput = titularCard.querySelector(`input[id^="nombre-"]`);
+          const documentoInput = titularCard.querySelector(`input[id^="documento-"]`);
+          
+          if (nombreInput) nombreInput.value = titular.nombre || '';
+          if (documentoInput) documentoInput.value = titular.documento || '';
+        }
+      });
+      console.log('✅ Titulares precargados:', titularesArray.length);
+      console.log('🔍 IDs de titulares actuales en state:', state.titulares.map(t => ({ id: t.id, state: 'nuevo' })));
+      console.log('🔍 IDs de titulares desde datos:', titularesArray.map(t => ({ id: t.id, source: 'datos' })));
+    }
+    
+    // Precargar suplentes
+    let suplentesArray = datos.suplentes;
+    if (typeof datos.suplentes === 'string') {
+      try {
+        suplentesArray = JSON.parse(datos.suplentes);
+        console.log('📋 Suplentes parseados desde string JSON:', suplentesArray);
+      } catch (error) {
+        console.error('❌ Error al parsear suplentes JSON:', error);
+        suplentesArray = [];
+      }
+    }
+    
+    if (suplentesArray && Array.isArray(suplentesArray)) {
+      suplentesArray.forEach((suplente, index) => {
+        addSuplente();
+        const suplenteCard = document.querySelector(`[data-id="${state.suplentes[index].id}"]`);
+        if (suplenteCard) {
+          const nombreInput = suplenteCard.querySelector(`input[id^="nombre-sup-"]`);
+          const documentoInput = suplenteCard.querySelector(`input[id^="documento-sup-"]`);
+          
+          if (nombreInput) nombreInput.value = suplente.nombre || '';
+          if (documentoInput) documentoInput.value = suplente.documento || '';
+        }
+      });
+      console.log('✅ Suplentes precargados:', suplentesArray.length);
+    }
+    
+    // Precargar cartas poder
+    let cartasPoderArray = datos.cartasPoder;
+    if (typeof datos.cartasPoder === 'string') {
+      try {
+        cartasPoderArray = JSON.parse(datos.cartasPoder);
+        console.log('📋 Cartas poder parseadas desde string JSON:', cartasPoderArray);
+      } catch (error) {
+        console.error('❌ Error al parsear cartas poder JSON:', error);
+        cartasPoderArray = [];
+      }
+    }
+    
+    console.log('🔍 Debug cartas poder:', {
+      original: datos.cartasPoder,
+      parseado: cartasPoderArray,
+      esArray: Array.isArray(cartasPoderArray),
+      longitud: cartasPoderArray?.length
+    });
+    
+    if (cartasPoderArray && Array.isArray(cartasPoderArray)) {
+      // Verificar si los datos tienen la estructura nueva (poderdante/apoderado) o antigua (desde/hacia)
+      const tienenEstructuraNueva = cartasPoderArray.every(carta => 
+        carta.hasOwnProperty('poderdante') && carta.hasOwnProperty('apoderado')
+      );
+      const tienenEstructuraAntigua = cartasPoderArray.every(carta => 
+        carta.hasOwnProperty('desde') && carta.hasOwnProperty('hacia')
+      );
+      
+      console.log('🔍 Estructura de cartas poder:', {
+        nueva: tienenEstructuraNueva,
+        antigua: tienenEstructuraAntigua
+      });
+      
+      if (tienenEstructuraNueva || tienenEstructuraAntigua) {
+        // Verificar si ya hay cartas poder en el DOM
+        const cartasExistentes = document.querySelectorAll('#cartas-poder-container .card').length;
+        console.log(`🔍 Cartas poder existentes en DOM: ${cartasExistentes}`);
+        console.log(`🔍 Cartas poder a procesar: ${cartasPoderArray.length}`);
+        
+        // Solo agregar cartas si no existen ya
+        const cartasAgregar = Math.max(0, cartasPoderArray.length - cartasExistentes);
+        console.log(`🔧 Cartas poder a agregar: ${cartasAgregar}`);
+        
+        // Agregar las cartas faltantes
+        for (let i = 0; i < cartasAgregar; i++) {
+          console.log(`🔧 Agregando carta poder ${cartasExistentes + i}...`);
+          addCartaPoder();
+        }
+        
+        cartasPoderArray.forEach((carta, index) => {
+          console.log(`🔍 Procesando carta ${index}:`, carta);
+          
+          // Buscar la card por índice en lugar de por ID guardado
+          const cartasCards = document.querySelectorAll('#cartas-poder-container .card');
+          const cartaCard = cartasCards[index];
+          console.log(`🔍 Carta card encontrada por índice ${index}:`, cartaCard);
+          
+          if (cartaCard) {
+            const desdeSelect = cartaCard.querySelector(`select[id^="desde-"]`);
+            const haciaSelect = cartaCard.querySelector(`select[id^="hacia-"]`);
+            
+            console.log(`🔍 Selects encontrados para carta ${index}:`, {
+              cartaCard: !!cartaCard,
+              cardId: cartaCard.getAttribute('data-id'),
+              desdeSelect: !!desdeSelect,
+              haciaSelect: !!haciaSelect,
+              desdeId: desdeSelect?.id,
+              haciaId: haciaSelect?.id,
+              innerHTML: cartaCard.innerHTML.substring(0, 200) + '...'
+            });
+            
+            // Aumentar delay para asegurar que los selects estén poblados
+            setTimeout(() => {
+              // Actualizar opciones primero solo si hay cartas poder en el DOM
+              console.log('🔧 Actualizando opciones de cartas poder...');
+              const cartasPoderEnDOM = document.querySelectorAll('#cartas-poder-container .card').length;
+              console.log(`🔍 Cartas poder en DOM: ${cartasPoderEnDOM}`);
+              
+              if (cartasPoderEnDOM > 0) {
+                updateCartaPoderSelects();
+              } else {
+                console.log('⚠️ No hay cartas poder en DOM para actualizar');
+              }
+              
+              // Verificar que las opciones se cargaron
+              setTimeout(() => {
+                // Validar que los selects existen antes de acceder a sus propiedades
+                if (!desdeSelect || !haciaSelect) {
+                  console.log(`❌ Error: Selects no encontrados`, {
+                    desdeSelect: !!desdeSelect,
+                    haciaSelect: !!haciaSelect
+                  });
+                  return;
+                }
+                
+                const desdeOptions = Array.from(desdeSelect.options);
+                const haciaOptions = Array.from(haciaSelect.options);
+                
+                console.log(`🔍 Opciones disponibles:`, {
+                  desdeOptions: desdeOptions.length,
+                  haciaOptions: haciaOptions.length,
+                  desdeOptionsText: desdeOptions.map(opt => `${opt.value}:${opt.text}`),
+                  haciaOptionsText: haciaOptions.map(opt => `${opt.value}:${opt.text}`)
+                });
+                
+                // Buscar por nombre y documento en lugar de ID guardado
+                if (tienenEstructuraNueva) {
+                  const poderdanteNombre = carta.poderdante?.nombre;
+                  const poderdanteDoc = carta.poderdante?.documento;
+                  const apoderadoNombre = carta.apoderado?.nombre;
+                  const apoderadoDoc = carta.apoderado?.documento;
+                  
+                  console.log(`� Buscando por datos:`, {
+                    poderdante: { nombre: poderdanteNombre, documento: poderdanteDoc },
+                    apoderado: { nombre: apoderadoNombre, documento: apoderadoDoc }
+                  });
+                  
+                  console.log(`🔍 Buscando por datos:`, {
+                    poderdante: { nombre: poderdanteNombre, documento: poderdanteDoc },
+                    apoderado: { nombre: apoderadoNombre, documento: apoderadoDoc }
+                  });
+                  
+                  // Mostrar todas las opciones disponibles para diagnóstico
+                  console.log(`🔍 Opciones desde disponibles:`, desdeOptions.map(opt => opt.text));
+                  console.log(`🔍 Opciones hacia disponibles:`, haciaOptions.map(opt => opt.text));
+                  
+                  // Buscar opciones que contengan el nombre y documento
+                  const desdeOption = desdeOptions.find(opt => {
+                    const includeNombre = opt.text.includes(poderdanteNombre);
+                    const includeDoc = opt.text.includes(poderdanteDoc);
+                    console.log(`🔍 Verificando opción desde "${opt.text}":`, {
+                      includeNombre,
+                      includeDoc,
+                      coincide: includeNombre && includeDoc
+                    });
+                    return includeNombre && includeDoc;
+                  });
+                  
+                  const haciaOption = haciaOptions.find(opt => {
+                    const includeNombre = opt.text.includes(apoderadoNombre);
+                    const includeDoc = opt.text.includes(apoderadoDoc);
+                    console.log(`🔍 Verificando opción hacia "${opt.text}":`, {
+                      includeNombre,
+                      includeDoc,
+                      coincide: includeNombre && includeDoc
+                    });
+                    return includeNombre && includeDoc;
+                  });
+                  
+                  console.log(`🔍 Opciones encontradas:`, {
+                    desdeOption: desdeOption ? { value: desdeOption.value, text: desdeOption.text } : null,
+                    haciaOption: haciaOption ? { value: haciaOption.value, text: haciaOption.text } : null
+                  });
+                  
+                  if (desdeOption && desdeSelect) {
+                    desdeSelect.value = desdeOption.value;
+                    console.log(`✅ Valor desde asignado:`, desdeOption.value);
+                  }
+                  
+                  if (haciaOption && haciaSelect) {
+                    haciaSelect.value = haciaOption.value;
+                    console.log(`✅ Valor hacia asignado:`, haciaOption.value);
+                  }
+                } else {
+                  // Estructura antigua: usar desde/hacia directamente
+                  const desdeValue = carta.desde || '';
+                  const haciaValue = carta.hacia || '';
+                  
+                  console.log(`🔍 Intentando asignar valores (estructura antigua):`, {
+                    desde: desdeValue,
+                    hacia: haciaValue
+                  });
+                  
+                  if (desdeSelect) {
+                    desdeSelect.value = desdeValue;
+                    console.log(`🔍 Resultado desde:`, {
+                      valorAsignado: desdeValue,
+                      valorActual: desdeSelect.value,
+                      seAsignoCorrectamente: desdeSelect.value === desdeValue
+                    });
+                  }
+                  
+                  if (haciaSelect) {
+                    haciaSelect.value = haciaValue;
+                    console.log(`🔍 Resultado hacia:`, {
+                      valorAsignado: haciaValue,
+                      valorActual: haciaSelect.value,
+                      seAsignoCorrectamente: haciaSelect.value === haciaValue
+                    });
+                  }
+                }
+                
+                // Verificación final después de un momento
+                setTimeout(() => {
+                  console.log(`🔍 Verificación final carta ${index}:`, {
+                    desde: desdeSelect?.value || 'no asignado',
+                    hacia: haciaSelect?.value || 'no asignado'
+                  });
+                }, 200);
+                
+              }, 500); // Delay adicional después de actualizar opciones
+            }, 1000); // Aumentado de 500ms a 1000ms
+          }
+        });
+        console.log('✅ Cartas poder precargadas:', cartasPoderArray.length);
+      } else {
+        console.log('⚠️ Los datos de cartas poder no tienen estructura reconocida');
+        console.log('💡 Se omite la precarga de cartas poder - estructura de datos no compatible');
+      }
+    }
+    
+    // Mostrar indicador de edición
+    mostrarIndicadorEdicion();
+    
+    // Actualizar resumen
+    setTimeout(() => {
+      updateResumen();
+      updateButtonStates();
+    }, 200);
+    
+  } catch (error) {
+    console.error('❌ Error al precargar datos:', error);
+  }
+}
+
+// Función para mostrar indicador de que se están editando datos existentes
+function mostrarIndicadorEdicion() {
+  const autoridadesSection = document.getElementById('autoridades-section');
+  if (autoridadesSection) {
+    const indicador = document.createElement('div');
+    indicador.className = 'edit-indicator';
+    indicador.innerHTML = `
+      <div class="edit-notice">
+        <span class="edit-icon">✏️</span>
+        <strong>Editando registro existente</strong>
+        <p>Se han cargado los datos previamente guardados. Puede modificarlos y guardar nuevamente.</p>
+      </div>
+    `;
+    
+    // Insertar al principio de la sección
+    autoridadesSection.insertBefore(indicador, autoridadesSection.firstChild);
+  }
+}
+
+// Función para consultar y precargar datos automáticamente después de la autenticación
+async function consultarYPrecargarDatos() {
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    console.error('❌ Error: No hay una sesión válida para consultar datos');
+    return;
+  }
+  
+  // Actualizar la información de la cooperativa en el formulario de registro
+  actualizarDatosCooperativaEnFormulario();
+  
+  // Actualizar títulos con información de la cooperativa
+  actualizarTitulosConLimites();
+  
+  // Consultar si hay datos existentes y precargarlos
+  try {
+    console.log('🔍 Consultando datos existentes automáticamente...');
+    const datosExistentes = await consultarDatosExistentes(state.cooperativaSeleccionada.code);
+    
+    if (datosExistentes) {
+      console.log('📋 Precargando datos existentes automáticamente...');
+      precargarDatosEnFormulario(datosExistentes);
+      
+      // Mostrar indicador de que se están editando datos existentes
+      mostrarIndicadorEdicion();
+    } else {
+      console.log('ℹ️ No hay datos previos, formulario en blanco');
+    }
+  } catch (error) {
+    console.error('❌ Error al consultar datos existentes:', error);
+    // No es crítico, continuar con formulario vacío
+  }
+}
+
+async function continuarAlFormulario() {
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    mostrarErrorLogin('Error: No hay una sesión válida');
+    return;
+  }
+  
+  // Cambiar a la pantalla de registro
+  mostrarRegistro();
+  
+  // Actualizar la información de la cooperativa en el formulario de registro
+  actualizarDatosCooperativaEnFormulario();
+  
+  // Actualizar títulos con información de la cooperativa
+  actualizarTitulosConLimites();
+  
+  // Consultar si hay datos existentes y precargarlos
+  try {
+    console.log('🔍 Consultando datos existentes...');
+    const datosExistentes = await consultarDatosExistentes(state.cooperativaSeleccionada.code);
+    
+    if (datosExistentes) {
+      console.log('📋 Precargando datos existentes...');
+      precargarDatosEnFormulario(datosExistentes);
+    } else {
+      console.log('ℹ️ No hay datos previos, formulario en blanco');
+    }
+  } catch (error) {
+    console.error('❌ Error al consultar datos existentes:', error);
+    // No es crítico, continuar con formulario vacío
+  }
+}
+
+function actualizarDatosCooperativaEnFormulario() {
+  if (!state.cooperativaSeleccionada) return;
+  
+  const coop = state.cooperativaSeleccionada;
+  
+  // No necesitamos campos de selección, la cooperativa ya está determinada
+  // Solo actualizamos la información visible si hay campos específicos
+  const codeField = document.getElementById("code");
+  const votesField = document.getElementById("votes");
+  
+  if (codeField) codeField.value = coop.code;
+  if (votesField) votesField.value = coop.votes;
+}
+
+function actualizarTitulosConLimites() {
+  if (!state.cooperativaSeleccionada) return;
+  
+  const coop = state.cooperativaSeleccionada;
+  
+  // Actualizar títulos de las secciones con los límites
+  const titularesTitle = document.querySelector("#titulares-section h2");
+  const suplentesTitle = document.querySelector("#suplentes-section h2");
+  
+  if (titularesTitle) {
+    titularesTitle.textContent = `Titulares (máximo ${coop.votes})`;
+  }
+  
+  if (suplentesTitle) {
+    suplentesTitle.textContent = `Suplentes (máximo ${coop.substitutes})`;
+  }
+}
+
+function cerrarSesion() {
+  console.log('🔄 Cerrando sesión...');
+  
+  // Limpiar estado de autenticación
+  state.usuarioAutenticado = false;
+  state.cooperativaSeleccionada = null;
+  state.titulares = [];
+  state.suplentes = [];
+  state.cartasPoder = [];
+  
+  // Limpiar campos del formulario de login
+  const codigoCooperativa = document.getElementById('codigo-cooperativa');
+  const codigoVerificador = document.getElementById('codigo-verificador');
+  
+  if (codigoCooperativa) codigoCooperativa.value = '';
+  if (codigoVerificador) codigoVerificador.value = '';
+  
+  // Ocultar error de login
+  const errorElement = document.getElementById('login-error');
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+  
+  // Cambiar de pantalla: ocultar registro y mostrar credenciales
+  const credencialesScreen = document.getElementById('credenciales-screen');
+  const registroScreen = document.getElementById('registro-screen');
+  
+  if (credencialesScreen && registroScreen) {
+    credencialesScreen.style.display = 'block';
+    registroScreen.style.display = 'none';
+    console.log('✅ Sesión cerrada, volviendo a pantalla de login');
+  } else {
+    console.error('❌ No se encontraron las pantallas para cerrar sesión');
+  }
+}
+
 // Funciones de navegación entre pantallas
 function mostrarRegistro() {
+  // Verificar que el usuario esté autenticado
+  if (!state.usuarioAutenticado || !state.cooperativaSeleccionada) {
+    alert('Debe iniciar sesión con los códigos de su cooperativa antes de continuar');
+    return;
+  }
+  
   document.getElementById("credenciales-screen").style.display = "none";
   document.getElementById("registro-screen").style.display = "block";
 }
@@ -26,59 +784,150 @@ function mostrarRegistro() {
 function volverCredenciales() {
   document.getElementById("registro-screen").style.display = "none";
   document.getElementById("credenciales-screen").style.display = "block";
+  
+  // Limpiar formularios cuando volvemos
+  clearCooperativeData();
 }
 
+// NOTA: Las siguientes funciones de carga de CSV ya no son necesarias
+// porque ahora la autenticación se hace contra un endpoint
+// Se mantienen comentadas por si se necesitan como referencia
+
+/*
 // Cargar los datos de las cooperativas desde el CSV
 async function loadCooperatives() {
   try {
-    const response = await fetch("data/cooperatives_con_car.csv");
+    console.log('🔄 Intentando cargar CSV...');
+    const response = await fetch("data/cooperatives_con_car_codigos.csv");
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const csvText = await response.text();
+    console.log('✅ CSV cargado, tamaño:', csvText.length, 'caracteres');
+    console.log('🔍 Primeros 200 caracteres:', csvText.substring(0, 200));
+    
     state.cooperativas = parseCSV(csvText);
-    populateCarSelect(state.cooperativas);
+    console.log("Cooperativas cargadas:", state.cooperativas.length);
+    console.log("Primera cooperativa:", state.cooperativas[0]);
+    
+    // Debug: mostrar todos los códigos disponibles
+    console.log("Códigos disponibles:", state.cooperativas.map(c => c.code).slice(0, 10));
+    
+    // Debug: buscar cooperativa 9 de diferentes formas
+    console.log("Cooperativa 9 (string):", state.cooperativas.find(c => c.code === "9"));
+    console.log("Cooperativa 9 (number):", state.cooperativas.find(c => c.code === 9));
+    console.log("Cooperativa 9 (parseInt):", state.cooperativas.find(c => parseInt(c.code) === 9));
+    
+    // Debug: mostrar cooperativas que empiecen con 9
+    console.log("Cooperativas con código que incluye 9:", state.cooperativas.filter(c => c.code?.toString().includes('9')).slice(0, 3));
   } catch (error) {
+    console.error('❌ Error cargando CSV:', error);
     showError("Error al cargar las cooperativas: " + error.message);
   }
 }
 
 // Función para parsear el CSV
 function parseCSV(csv) {
-  const lines = csv.split("\n");
-  const headers = lines[0].split(",").map((h) => h.trim());
-
-  return lines
-    .slice(1)
-    .filter((line) => line.trim())
-    .map((line) => {
-      // Manejar comillas en el CSV
-      const values = [];
-      let current = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          values.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
+  console.log('🔍 Parseando CSV...');
+  console.log('📊 CSV recibido (primeras 200 chars):', csv.substring(0, 200));
+  console.log('📏 Longitud total del CSV:', csv.length);
+  
+  if (!csv || csv.length === 0) {
+    console.error('❌ CSV vacío o undefined');
+    return [];
+  }
+  
+  const lines = csv.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  console.log('📝 Líneas válidas encontradas:', lines.length);
+  console.log('📋 Primera línea (header):', lines[0]);
+  console.log('📋 Segunda línea (primera coop):', lines[1]);
+  
+  if (lines.length < 2) {
+    console.error('❌ CSV sin datos válidos');
+    return [];
+  }
+  
+  const cooperativas = [];
+  
+  // Procesar desde línea 1 (saltar header)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    
+    try {
+      // Parser específico para el formato: "campo1,campo2,campo3,campo4,campo5,campo6,campo7;campo8"
+      let values = [];
+      
+      // Primero separar por punto y coma para obtener el código verificador
+      const parts = line.split(';');
+      if (parts.length === 2) {
+        // Los primeros 7 campos separados por coma
+        const firstSevenFields = parts[0].split(',');
+        // El último campo (código verificador)
+        const codigoVerificador = parts[1].trim().replace(/^"|"$/g, '');
+        
+        // Combinar todos los campos
+        values = [...firstSevenFields.map(v => v.trim().replace(/^"|"$/g, '')), codigoVerificador];
+      } else {
+        // Fallback: si no hay punto y coma, intentar parsing normal
+        values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
       }
+      
+      if (values.length >= 8) {
+        const cooperativa = {
+          code: values[0],
+          cuit: values[1],
+          name: values[2],
+          votes: parseInt(values[3]) || 0,
+          substitutes: parseInt(values[4]) || 0,
+          CAR: values[5],
+          'CAR Nombre': values[6],
+          codigo_verificador: values[7]
+        };
+        
+        cooperativas.push(cooperativa);
+        
+        if (cooperativa.code === '9') {
+          console.log('🎯 ENCONTRADA Cooperativa 9:', cooperativa);
+        }
+        
+        // Solo mostrar las primeras 3 para no saturar el log
+        if (i <= 3) {
+          console.log(`✅ Cooperativa ${i} cargada:`, cooperativa);
+        }
+      } else {
+        console.log(`⚠️ Línea ${i} formato incorrecto (${values.length} campos):`, values);
+      }
+    } catch (error) {
+      console.error(`❌ Error línea ${i}:`, error, line);
+    }
+  }
+  
+  console.log(`🎉 Total cooperativas parseadas: ${cooperativas.length}`);
+  return cooperativas;
+}
+*/
+
+// Función auxiliar para parsing normal
+function parseLineNormal(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
       values.push(current.trim());
-
-      const cooperative = {};
-      headers.forEach((header, index) => {
-        cooperative[header] = values[index] || "";
-      });
-
-      // Convertir votes y substitutes a números
-      cooperative.votes = parseInt(cooperative.votes) || 0;
-      cooperative.substitutes = parseInt(cooperative.substitutes) || 0;
-      cooperative.CAR = parseInt(cooperative.CAR) || 0;
-
-      return cooperative;
-    });
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+  return values;
 }
 
 // Poblar el select con los CARs
@@ -295,12 +1144,22 @@ function createCartaPoderCard(id) {
 
 // Funciones de gestión de titulares
 function addTitular() {
+  console.log('🔄 Intentando agregar titular...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    titularesActuales: state.titulares.length,
+    maxTitulares: state.maxTitulares,
+    usuarioAutenticado: state.usuarioAutenticado
+  });
+  
   if (!state.cooperativaSeleccionada) {
+    console.error('❌ No hay cooperativa seleccionada');
     showError("Debe seleccionar una cooperativa antes de agregar titulares");
     return;
   }
 
   if (state.titulares.length >= state.maxTitulares) {
+    console.error('❌ Límite de titulares alcanzado');
     showError(
       `No se pueden agregar más titulares. Máximo permitido según votos de la cooperativa: ${state.maxTitulares}`
     );
@@ -309,8 +1168,18 @@ function addTitular() {
 
   const id = createUniqueId();
   state.titulares.push({ id });
+  console.log('✅ Titular agregado con ID:', id);
+  
   const card = createTitularCard(id);
-  document.getElementById("titulares-container").appendChild(card);
+  const container = document.getElementById("titulares-container");
+  
+  if (container) {
+    container.appendChild(card);
+    console.log('✅ Card agregada al contenedor');
+  } else {
+    console.error('❌ No se encontró el contenedor de titulares');
+  }
+  
   updateCartaPoderSelects();
   updateButtonStates();
 }
@@ -324,12 +1193,22 @@ function removeTitular(id) {
 
 // Funciones de gestión de suplentes
 function addSuplente() {
+  console.log('🔄 Intentando agregar suplente...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    suplentesActuales: state.suplentes.length,
+    maxSuplentes: state.maxSuplentes,
+    usuarioAutenticado: state.usuarioAutenticado
+  });
+  
   if (!state.cooperativaSeleccionada) {
+    console.error('❌ No hay cooperativa seleccionada');
     showError("Debe seleccionar una cooperativa antes de agregar suplentes");
     return;
   }
 
   if (state.suplentes.length >= state.maxSuplentes) {
+    console.error('❌ Límite de suplentes alcanzado');
     showError(
       `No se pueden agregar más suplentes. Máximo permitido según votos de la cooperativa: ${state.maxSuplentes}`
     );
@@ -338,8 +1217,18 @@ function addSuplente() {
 
   const id = createUniqueId();
   state.suplentes.push({ id });
+  console.log('✅ Suplente agregado con ID:', id);
+  
   const card = createSuplenteCard(id);
-  document.getElementById("suplentes-container").appendChild(card);
+  const container = document.getElementById("suplentes-container");
+  
+  if (container) {
+    container.appendChild(card);
+    console.log('✅ Card agregada al contenedor');
+  } else {
+    console.error('❌ No se encontró el contenedor de suplentes');
+  }
+  
   updateButtonStates();
 }
 
@@ -377,19 +1266,24 @@ function removeCartaPoder(id) {
 function updateCartaPoderSelects() {
   const titulares = Array.from(
     document.querySelectorAll("#titulares-container .card")
-  ).map((card) => ({
-    id: card.dataset.id,
-    nombre: card.querySelector('input[id^="nombre-"]').value,
-  }));
+  ).map((card) => {
+    const nombreInput = card.querySelector('input[id^="nombre-"]');
+    const documentoInput = card.querySelector('input[id^="documento-"]');
+    return {
+      id: card.dataset.id,
+      nombre: nombreInput ? nombreInput.value : '',
+      documento: documentoInput ? documentoInput.value : '',
+    };
+  });
 
   // Obtener lista de poderdantes (quienes ya delegaron su voto)
   const poderdantes = new Set();
   state.cartasPoder.forEach((cpOther) => {
     const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
     if (otherCard) {
-      const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
-      if (desde) {
-        poderdantes.add(desde);
+      const desdeSelect = otherCard.querySelector(`select[id^="desde-"]`);
+      if (desdeSelect && desdeSelect.value) {
+        poderdantes.add(desdeSelect.value);
       }
     }
   });
@@ -400,6 +1294,12 @@ function updateCartaPoderSelects() {
 
     const desdeSelect = card.querySelector(`select[id^="desde-"]`);
     const haciaSelect = card.querySelector(`select[id^="hacia-"]`);
+    
+    // Validar que los selects existen
+    if (!desdeSelect || !haciaSelect) {
+      console.log(`❌ Selects no encontrados para carta ${cp.id}`);
+      return;
+    }
 
     const currentDesde = desdeSelect.value;
     const currentHacia = haciaSelect.value;
@@ -411,9 +1311,9 @@ function updateCartaPoderSelects() {
         // Excluir la carta actual
         const otherCard = document.querySelector(`[data-id="${cpOther.id}"]`);
         if (otherCard) {
-          const desde = otherCard.querySelector(`select[id^="desde-"]`).value;
-          if (desde) {
-            otrosPoderdantes.add(desde);
+          const otherDesdeSelect = otherCard.querySelector(`select[id^="desde-"]`);
+          if (otherDesdeSelect && otherDesdeSelect.value) {
+            otrosPoderdantes.add(otherDesdeSelect.value);
           }
         }
       }
@@ -425,12 +1325,14 @@ function updateCartaPoderSelects() {
     titulares.forEach((t) => {
       // Solo los titulares que NO son poderdantes en OTRAS cartas pueden ser poderdantes
       if (!otrosPoderdantes.has(t.id)) {
-        desdeSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
+        const textoOpcion = t.nombre ? `${t.nombre} (${t.documento || 'Sin documento'})` : `Titular ${t.id}`;
+        desdeSelect.add(new Option(textoOpcion, t.id));
       }
 
       // Solo los titulares que NO son poderdantes en NINGUNA carta pueden ser apoderados
       if (!poderdantes.has(t.id)) {
-        haciaSelect.add(new Option(t.nombre || `Titular ${t.id}`, t.id));
+        const textoOpcion = t.nombre ? `${t.nombre} (${t.documento || 'Sin documento'})` : `Titular ${t.id}`;
+        haciaSelect.add(new Option(textoOpcion, t.id));
       }
     });
 
@@ -454,16 +1356,34 @@ function updateCartaPoderSelects() {
 
 // Función para actualizar el estado de los botones
 function updateButtonStates() {
+  console.log('🔄 Actualizando estados de botones...');
+  console.log('📊 Estado actual:', {
+    cooperativaSeleccionada: state.cooperativaSeleccionada?.name,
+    usuarioAutenticado: state.usuarioAutenticado,
+    titulares: state.titulares.length,
+    maxTitulares: state.maxTitulares,
+    suplentes: state.suplentes.length,
+    maxSuplentes: state.maxSuplentes
+  });
+  
   const addTitularBtn = document.getElementById("agregar-titular");
   const addSuplenteBtn = document.getElementById("agregar-suplente");
   const addCartaPoderBtn = document.getElementById("agregar-carta-poder");
 
+  console.log('🔍 Botones encontrados:', {
+    titular: !!addTitularBtn,
+    suplente: !!addSuplenteBtn,
+    cartaPoder: !!addCartaPoderBtn
+  });
+
   // Si los botones no existen (estamos en pantalla de credenciales), salir
   if (!addTitularBtn || !addSuplenteBtn || !addCartaPoderBtn) {
+    console.log('⚠️ Algunos botones no existen, saliendo de updateButtonStates');
     return;
   }
 
   if (!state.cooperativaSeleccionada) {
+    console.log('❌ Sin cooperativa seleccionada - deshabilitando botones');
     // Sin cooperativa seleccionada - botones deshabilitados y texto básico
     addTitularBtn.disabled = true;
     addTitularBtn.textContent = "Agregar Titular";
@@ -474,6 +1394,7 @@ function updateButtonStates() {
     addCartaPoderBtn.disabled = true;
     addCartaPoderBtn.textContent = "Agregar Carta Poder";
   } else {
+    console.log('✅ Con cooperativa seleccionada - habilitando botones');
     // Con cooperativa seleccionada - mostrar contadores y límites
     addTitularBtn.disabled = state.titulares.length >= state.maxTitulares;
     addTitularBtn.textContent =
@@ -575,6 +1496,33 @@ function validateAndSave() {
     errors.push("Debe seleccionar una cooperativa");
     showErrors(errors);
     return false;
+  }
+
+  // Validar campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  
+  if (!secretarioInput || !secretarioInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del secretario");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(secretarioInput.value.trim())) {
+    errors.push("El nombre del secretario solo puede contener letras y espacios");
+  }
+  
+  if (!presidenteInput || !presidenteInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del presidente");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(presidenteInput.value.trim())) {
+    errors.push("El nombre del presidente solo puede contener letras y espacios");
+  }
+
+  // Validar campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (!correoInput || !correoInput.value.trim()) {
+    errors.push("Debe ingresar un correo electrónico de contacto");
+  } else {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!emailRegex.test(correoInput.value.trim())) {
+      errors.push("El correo electrónico no tiene un formato válido");
+    }
   }
 
   // Validar cantidad de titulares (debe ser entre 1 y 6)
@@ -739,6 +1687,33 @@ function validate() {
     errors.push("Debe seleccionar una cooperativa");
     showErrors(errors);
     return false;
+  }
+
+  // Validar campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  
+  if (!secretarioInput || !secretarioInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del secretario");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(secretarioInput.value.trim())) {
+    errors.push("El nombre del secretario solo puede contener letras y espacios");
+  }
+  
+  if (!presidenteInput || !presidenteInput.value.trim()) {
+    errors.push("Debe ingresar el nombre del presidente");
+  } else if (!/^[A-Za-zÀ-ÿ\s]+$/.test(presidenteInput.value.trim())) {
+    errors.push("El nombre del presidente solo puede contener letras y espacios");
+  }
+
+  // Validar campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (!correoInput || !correoInput.value.trim()) {
+    errors.push("Debe ingresar un correo electrónico de contacto");
+  } else {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!emailRegex.test(correoInput.value.trim())) {
+      errors.push("El correo electrónico no tiene un formato válido");
+    }
   }
 
   // Validar cantidad de titulares (debe ser entre 1 y 6)
@@ -969,15 +1944,26 @@ function showSaveSuccessWithResumen() {
 
 // Función para generar el JSON con los datos del formulario
 function generateFormDataJSON() {
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  const correoInput = document.getElementById("correo-electronico");
+  
   const formData = {
     timestamp: new Date().toISOString(),
     cooperativa: {
       codigo: state.cooperativaSeleccionada?.code || "",
       nombre: state.cooperativaSeleccionada?.name || "",
-      votos: state.cooperativaSeleccionada?.votes || 0,
-      suplentes: state.cooperativaSeleccionada?.substitutes || 0,
-      car: state.cooperativaSeleccionada?.CAR || 0,
+      votos: parseInt(state.cooperativaSeleccionada?.votes) || 0,
+      suplentes: parseInt(state.cooperativaSeleccionada?.substitutes) || 0,
+      car: state.cooperativaSeleccionada?.CAR || "0",
       carNombre: state.cooperativaSeleccionada?.["CAR Nombre"] || "",
+    },
+    autoridades: {
+      secretario: secretarioInput?.value?.trim() || "",
+      presidente: presidenteInput?.value?.trim() || "",
+    },
+    contacto: {
+      correoElectronico: correoInput?.value?.trim() || "",
     },
     titulares: [],
     suplentes: [],
@@ -1070,10 +2056,39 @@ function generateFormDataJSON() {
 }
 
 // Función para enviar los datos al endpoint
+// Función para normalizar caracteres especiales (acentos, etc.)
+function normalizeText(text) {
+  if (typeof text !== 'string') return text;
+  
+  return text
+    .normalize('NFD') // Descomponer caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, '') // Remover marcas diacríticas (acentos)
+    .replace(/[ñÑ]/g, match => match === 'ñ' ? 'n' : 'N'); // Manejar ñ específicamente si es necesario
+}
+
+// Función para normalizar recursivamente un objeto
+function normalizeObject(obj) {
+  if (typeof obj === 'string') {
+    return normalizeText(obj);
+  } else if (Array.isArray(obj)) {
+    return obj.map(normalizeObject);
+  } else if (obj && typeof obj === 'object') {
+    const normalized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      normalized[key] = normalizeObject(value);
+    }
+    return normalized;
+  }
+  return obj;
+}
+
 async function sendDataToEndpoint(data) {
   try {
+    // Normalizar caracteres especiales para evitar problemas de encoding
+    const normalizedData = normalizeObject(data);
+    
     console.log("Enviando datos al endpoint:", config.apiEndpoint);
-    console.log("Datos a enviar:", JSON.stringify(data, null, 2));
+    console.log("Datos a enviar:", JSON.stringify(normalizedData, null, 2));
 
     // Crear un AbortController para manejar timeout
     const controller = new AbortController();
@@ -1085,11 +2100,14 @@ async function sendDataToEndpoint(data) {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(normalizedData),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
+
+    console.log("Status de la respuesta:", response.status);
+    console.log("Headers de la respuesta:", [...response.headers.entries()]);
 
     if (!response.ok) {
       throw new Error(
@@ -1097,8 +2115,24 @@ async function sendDataToEndpoint(data) {
       );
     }
 
-    const result = await response.json();
-    console.log("Respuesta del servidor:", result);
+    // Obtener el texto de la respuesta primero
+    const responseText = await response.text();
+    console.log("Texto de la respuesta:", responseText);
+
+    // Intentar parsear como JSON solo si hay contenido
+    let result;
+    if (responseText.trim()) {
+      try {
+        result = JSON.parse(responseText);
+        console.log("Respuesta parseada como JSON:", result);
+      } catch (jsonError) {
+        console.log("La respuesta no es JSON válido, usando texto plano");
+        result = { message: responseText };
+      }
+    } else {
+      console.log("Respuesta vacía del servidor - asumiendo éxito");
+      result = { message: "Datos enviados correctamente" };
+    }
 
     return {
       success: true,
@@ -1113,10 +2147,15 @@ async function sendDataToEndpoint(data) {
           "La solicitud tardó demasiado tiempo. Verifique su conexión e intente nuevamente.",
       };
     }
-    console.error("Error al enviar datos:", error);
+    console.error("Error detallado al enviar datos:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return {
       success: false,
-      error: error.message,
+      error: `Error al conectar con el servidor: ${error.message}`,
     };
   }
 }
@@ -1233,6 +2272,13 @@ function downloadJSONBackup(data) {
 function generateResumen() {
   const resumen = {
     cooperativa: state.cooperativaSeleccionada,
+    autoridades: {
+      secretario: "",
+      presidente: ""
+    },
+    contacto: {
+      correoElectronico: ""
+    },
     titulares: state.titulares.map((t) => {
       const card = document.querySelector(`[data-id="${t.id}"]`);
       return {
@@ -1252,12 +2298,37 @@ function generateResumen() {
     }),
     delegaciones: state.cartasPoder.map((cp) => {
       const card = document.querySelector(`[data-id="${cp.id}"]`);
+      const desdeValue = card.querySelector(`select[id^="desde-"]`).value;
+      const haciaValue = card.querySelector(`select[id^="hacia-"]`).value;
+      
+      console.log(`🔍 Recopilando carta poder ${cp.id}:`, {
+        card: card,
+        desdeSelect: card.querySelector(`select[id^="desde-"]`),
+        haciaSelect: card.querySelector(`select[id^="hacia-"]`),
+        desdeValue: desdeValue,
+        haciaValue: haciaValue
+      });
+      
       return {
-        desde: card.querySelector(`select[id^="desde-"]`).value,
-        hacia: card.querySelector(`select[id^="hacia-"]`).value,
+        desde: desdeValue,
+        hacia: haciaValue,
       };
     }),
   };
+
+  // Obtener datos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  const presidenteInput = document.getElementById("presidente");
+  const correoInput = document.getElementById("correo-electronico");
+  if (secretarioInput) {
+    resumen.autoridades.secretario = secretarioInput.value.trim();
+  }
+  if (presidenteInput) {
+    resumen.autoridades.presidente = presidenteInput.value.trim();
+  }
+  if (correoInput) {
+    resumen.contacto.correoElectronico = correoInput.value.trim();
+  }
 
   // Calcular votos representados
   resumen.delegaciones.forEach((d) => {
@@ -1265,6 +2336,15 @@ function generateResumen() {
     if (titular) {
       titular.votosRepresentados.push(d.desde);
     }
+  });
+
+  // Debug: Mostrar estructura final del resumen
+  console.log('🔍 Resumen generado completo:', {
+    cooperativa: resumen.cooperativa?.name,
+    titulares: resumen.titulares.length,
+    suplentes: resumen.suplentes.length,
+    delegaciones: resumen.delegaciones.length,
+    estructuraDelegaciones: resumen.delegaciones
   });
 
   return resumen;
@@ -1295,6 +2375,24 @@ function updateResumen() {
         <p><strong>CUIT:</strong> ${resumen.cooperativa.cuit}</p>
         <p><strong>Votos totales:</strong> ${resumen.cooperativa.votes}</p>
     </div>`;
+
+  // Mostrar información de autoridades si está disponible
+  if (resumen.autoridades && (resumen.autoridades.secretario || resumen.autoridades.presidente)) {
+    html += `<div class="card">
+        <h3>Autoridades de la Cooperativa</h3>
+        ${resumen.autoridades.secretario ? `<p><strong>Secretario:</strong> ${resumen.autoridades.secretario}</p>` : ''}
+        ${resumen.autoridades.presidente ? `<p><strong>Presidente:</strong> ${resumen.autoridades.presidente}</p>` : ''}
+    </div>`;
+  }
+
+  // Mostrar información de contacto si está disponible
+  if (resumen.contacto && resumen.contacto.correoElectronico) {
+    html += `<div class="card">
+        <h3>Información de Contacto</h3>
+        <p><strong>Correo Electrónico:</strong> ${resumen.contacto.correoElectronico}</p>
+        <p><small>Se enviará toda la información de la votación a esta dirección</small></p>
+    </div>`;
+  }
 
   html += "<h3>Distribución de Votos:</h3>";
   let totalVotosEjercidos = 0;
@@ -1477,15 +2575,57 @@ Reglas de cartas poder:
 }
 
 // Event Listeners
-document.addEventListener("DOMContentLoaded", () => {
-  // Event listener para el botón de continuar al registro
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log('🚀 DOM cargado, iniciando aplicación...');
+  
+  // NOTA: Ya no cargamos cooperativas desde CSV porque ahora usamos endpoint
+  // await loadCooperatives();
+
+  // Event listeners para el sistema de autenticación
+  const loginBtn = document.getElementById("btn-login");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", intentarLogin);
+  }
+
+  // Event listener para campos de login (Enter para submit)
+  const codigoCooperativaInput = document.getElementById("codigo-cooperativa");
+  const codigoVerificadorInput = document.getElementById("codigo-verificador");
+  
+  if (codigoCooperativaInput) {
+    codigoCooperativaInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        intentarLogin();
+      }
+    });
+  }
+  
+  if (codigoVerificadorInput) {
+    codigoVerificadorInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        intentarLogin();
+      }
+    });
+  }
+
+  // Event listener para continuar al formulario
+  const continuarFormularioBtn = document.getElementById("btn-continuar-formulario");
+  if (continuarFormularioBtn) {
+    continuarFormularioBtn.addEventListener("click", continuarAlFormulario);
+  }
+
+  // Event listener para cerrar sesión
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", cerrarSesion);
+  }
+
+  // Event listener para el botón de continuar al registro (legacy - ya no se usa)
   const continuarBtn = document.getElementById("continuar-registro");
   if (continuarBtn) {
     continuarBtn.addEventListener("click", mostrarRegistro);
   }
-
-  // Cargar cooperativas
-  loadCooperatives();
 
   // Eventos de botones principales - solo si existen
   const agregarTitularBtn = document.getElementById("agregar-titular");
@@ -1504,13 +2644,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // El botón guardar ahora usa onclick en el HTML
 
-  // Evento de cambio de CAR - solo si existe
+  // Evento de cambio de CAR - solo si existe (legacy - ya no se usa)
   const carSelect = document.getElementById("car-select");
   if (carSelect) {
     carSelect.addEventListener("change", filterCooperativesByCAR);
   }
 
-  // Evento de cambio de cooperativa - solo si existe
+  // Evento de cambio de cooperativa - solo si existe (legacy - ya no se usa)
   const cooperativeSelect = document.getElementById("cooperative");
   if (cooperativeSelect) {
     cooperativeSelect.addEventListener("change", handleCooperativeChange);
@@ -1545,6 +2685,30 @@ document.addEventListener("DOMContentLoaded", () => {
       modal.style.display = "none";
     }
   });
+
+  // Event listeners para campos de autoridades
+  const secretarioInput = document.getElementById("secretario");
+  if (secretarioInput) {
+    secretarioInput.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+    });
+  }
+
+  const presidenteInput = document.getElementById("presidente");
+  if (presidenteInput) {
+    presidenteInput.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+    });
+  }
+
+  // Event listener para el campo de correo electrónico
+  const correoInput = document.getElementById("correo-electronico");
+  if (correoInput) {
+    correoInput.addEventListener("input", function () {
+      // Convertir a minúsculas y eliminar espacios
+      this.value = this.value.toLowerCase().replace(/\s/g, "");
+    });
+  }
 
   // Inicializar estado de botones
   updateButtonStates();
